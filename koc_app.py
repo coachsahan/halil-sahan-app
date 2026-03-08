@@ -5,7 +5,7 @@ from datetime import date
 import base64
 
 # --- SAYFA AYARLARI ---
-st.set_page_config(page_title="HALİL ŞAHAN ELITE", layout="wide")
+st.set_page_config(page_title="KOÇ HALİL ŞAHAN", layout="wide")
 
 RESIM_YOLU = "panel_bg.jpg"
 LOGO_YOLU = "logo.jpg" 
@@ -138,7 +138,7 @@ else:
                 bacak = c2.number_input("Bacak (cm)", step=0.1)
                 baldir = c3.number_input("Baldır (cm)", step=0.1)
                 
-                if st.form_submit_button("ÖLÇÜLERİ GÖNDER 🔥"):
+                if st.form_submit_button("ÖLÇÜLERİ KOÇA GÖNDER 🔥"):
                     df_o = veriyi_yukle(OLCU_DOSYASI, ['Tarih', 'Öğrenci Adı', 'Boy', 'Omuz', 'Kalça', 'Baldır', 'Üst Kol', 'Alt Kol', 'Göğüs', 'Bel', 'Bacak'])
                     yeni_o = pd.DataFrame([[date.today(), current_user.capitalize(), boy, omuz, kalca, baldir, ust_kol, alt_kol, gogus, bel, bacak]], columns=df_o.columns)
                     pd.concat([df_o, yeni_o]).to_csv(OLCU_DOSYASI, index=False)
@@ -148,3 +148,4 @@ else:
             st.subheader("Senin Kayıtların")
             df_k = veriyi_yukle(KILO_DOSYASI, ['Tarih', 'Öğrenci Adı', 'Kilo', 'Not'])
             st.table(df_k[df_k['Öğrenci Adı'].str.lower() == current_user].tail(10))
+
