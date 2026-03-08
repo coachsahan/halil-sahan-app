@@ -9,8 +9,8 @@ import base64
 st.set_page_config(page_title="HALİL ŞAHAN ELITE", layout="wide", page_icon="⚡")
 
 # ❗ YOLLARI GÜNCELLEMEYİ UNUTMA ❗
-RESIM_YOLU = "panel_bg"
-LOGO_YOLU = "logo"
+RESIM_YOLU = "panel_bg.jpg"
+LOGO_YOLU = "logo.jpg"
 # --- ARKA PLAN VE TASARIM ---
 def set_bg(main_bg):
     if os.path.exists(main_bg):
@@ -88,3 +88,4 @@ else:
             st.subheader(f"{secilen_ogrenci} - Değişim Tablosu")
 
             st.table(filtre) # Tüm geçmişini tablo olarak döküyoruz
+
