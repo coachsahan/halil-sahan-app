@@ -13,7 +13,7 @@ LOGO_YOLU = "logo.jpg"
 # --- KULLANICI VERİTABANI ---
 KULLANICILAR = {
     "halil": "sahan123",
-    "ahmet": "ahmet2024",
+    "emre": "emre2026",
     "mehmet": "mehmet55",
     "can": "canelite1"
 }
@@ -147,3 +147,4 @@ else:
         with tab3:
             df_k = veriyi_yukle(KILO_DOSYASI, ['Tarih', 'Öğrenci Adı', 'Kilo', 'Not'])
             st.table(df_k[df_k['Öğrenci Adı'].str.lower() == current_user].tail(10))
+
