@@ -14,8 +14,8 @@ LOGO_YOLU = "logo.jpg"
 KULLANICILAR = {
     "halil": "sahan123",
     "emrecan": "emrecan2026",
-    "mehmet": "mehmet55",
-    "can": "canelite1"
+    "yusufziya": "yusufziya2026",
+    "umuttatar": "tatar2026"
 }
 
 def set_bg(main_bg):
@@ -153,4 +153,5 @@ else:
             df_k = veriyi_yukle(KILO_DOSYASI, ['Tarih', 'Öğrenci Adı', 'Kilo', 'Not'])
             st.write("Son Günlük Kayıtların:")
             st.table(df_k[df_k['Öğrenci Adı'].str.lower() == current_user].tail(10))
+
 
