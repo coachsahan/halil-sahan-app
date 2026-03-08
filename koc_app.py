@@ -1,90 +1,107 @@
 import streamlit as st
 import pandas as pd
 import os
-from datetime import date, timedelta
+from datetime import date
 from PIL import Image
 import base64
 
 # --- AYARLAR ---
-st.set_page_config(page_title="HALİL ŞAHAN ELITE", layout="wide", page_icon="⚡")
+st.set_page_config(page_title="HALİL ŞAHAN ELITE", layout="wide")
 
-# ❗ YOLLARI GÜNCELLEMEYİ UNUTMA ❗
+# GitHub'daki dosya isimlerin neyse buraya tam olarak onu yaz!
 RESIM_YOLU = "panel_bg.jpg"
 LOGO_YOLU = "logo.jpg"
 
-# --- ARKA PLAN VE TASARIM ---
+# Arka Plan Fonksiyonu
 def set_bg(main_bg):
     if os.path.exists(main_bg):
-        with open(main_bg, "rb") as f:
-            data = f.read()
+        with open(main_bg, "rb") as f: data = f.read()
         b64 = base64.b64encode(data).decode()
         st.markdown(f"""
             <style>
-            .stApp {{ background: url("data:image/png;base64,{b64}"); background-size: cover; background-attachment: fixed; }}
-            .stApp::before {{ content: ""; position: absolute; top: 0; left: 0; width: 100%; height: 100%; background-color: rgba(0, 0, 0, 0.75); z-index: -1; }}
-            h1, h2, h3 {{ color: #ff4b4b !important; text-shadow: 2px 2px 4px black; font-family: 'Impact'; }}
-            .stDataFrame {{ background: rgba(255, 255, 255, 0.05); border-radius: 10px; }}
+            .stApp {{
+                background: url("data:image/png;base64,{b64}");
+                background-size: cover;
+                background-attachment: fixed;
+            }}
+            /* Arka planı aydınlatmak için karartma katmanını hafifletelim */
+            .stApp::before {{
+                content: "";
+                position: absolute; top: 0; left: 0; width: 100%; height: 100%;
+                background-color: rgba(0, 0, 0, 0.45); /* 0.75 -> 0.45 yapıldı */
+                z-index: 0;
+            }}
+            /* Tüm içeriği en ön katmana (layer) taşıyoruz */
+            .main .block-container {{
+                position: relative;
+                z-index: 10;
+            }}
+            h1, h2, h3, p, span, label {{
+                color: white !important;
+                text-shadow: 2px 2px 4px rgba(0,0,0,1) !important;
+            }}
+            /* Senin fotoğrafının arkasına hafif gri bir kutu */
+            .stSidebar .stImage {{
+                background-color: rgba(128, 128, 128, 0.3);
+                padding: 10px;
+                border-radius: 10px;
+                border: 1px solid rgba(255, 255, 255, 0.2);
+            }}
             </style>
             """, unsafe_allow_html=True)
 
 set_bg(RESIM_YOLU)
 
-# --- VERİ YÖNETİMİ ---
+# Veri Yükleme
 VERI_DOSYASI = "ogrenci_veritabani.csv"
 def veriyi_yukle():
-    if os.path.exists(VERI_DOSYASI): 
-        df = pd.read_csv(VERI_DOSYASI)
-        df['Tarih'] = pd.to_datetime(df['Tarih'])
-        return df
+    if os.path.exists(VERI_DOSYASI): return pd.read_csv(VERI_DOSYASI)
     return pd.DataFrame(columns=['Tarih', 'Öğrenci Adı', 'Kilo', 'Bel (cm)', 'Notlar'])
 
 # --- GİRİŞ SİSTEMİ ---
-if 'logged_in' not in st.session_state: st.session_state.logged_in = False
+if 'role' not in st.session_state: st.session_state.role = None
 
-if not st.session_state.logged_in:
-    st.markdown("<h1 style='text-align: center; font-size: 4em;'>HALİL ŞAHAN</h1>", unsafe_allow_html=True)
-    col_a, col_b, col_c = st.columns([1, 1.2, 1])
-    with col_b:
-        user = st.text_input("👤 KULLANICI ADI")
-        pw = st.text_input("🔑 ŞİFRE", type="password")
-        if st.button("GİRİŞ YAP 🔥"):
-            if user == "halil" and pw == "sahan123":
-                st.session_state.logged_in = True
-                st.rerun()
+if st.session_state.role is None:
+    st.markdown("<h1 style='text-align: center; font-size: 3.5em;'>HALİL ŞAHAN</h1>", unsafe_allow_html=True)
+    user = st.text_input("KULLANICI ADI").lower()
+    pw = st.text_input("ŞİFRE", type="password")
+    if st.button("GÜCÜ HİSSET VE GİRİŞ YAP 🔥"):
+        if user == "halil" and pw == "sahan123":
+            st.session_state.role = "admin"
+            st.rerun()
+        elif user == "sporcu" and pw == "elite2024":
+            st.session_state.role = "user"
+            st.rerun()
+        else: st.error("Hatalı Giriş!")
 else:
     df = veriyi_yukle()
-    with st.sidebar:
-        if os.path.exists(LOGO_YOLU): st.image(Image.open(LOGO_YOLU))
-        st.markdown("<h2 style='text-align:center;'>COACH HALİL</h2>", unsafe_allow_html=True)
-        menu = ["🏠 ANA SAYFA", "📝 VERİ GİRİŞİ", "📊 HAFTALIK ANALİZ"]
-        secim = st.selectbox("Menü", menu)
-        if st.button("Çıkış"):
-            st.session_state.logged_in = False
-            st.rerun()
+    if st.session_state.role == "admin":
+        with st.sidebar:
+            if os.path.exists(LOGO_YOLU):
+                image = Image.open(LOGO_YOLU)
+                # Fotoğrafın arkasına gri çerçeve
+                st.image(image, use_container_width=True)
+            st.title("COACH PANELİ 👑")
+            if st.button("Çıkış Yap"):
+                st.session_state.role = None
+                st.rerun()
+        st.title("Tüm Sporcular")
+        st.dataframe(df, use_container_width=True)
 
-    if secim == "🏠 ANA SAYFA":
+    elif st.session_state.role == "user":
+        with st.sidebar:
+            if os.path.exists(LOGO_YOLU): st.image(LOGO_YOLU)
+            st.title("SPORCU GİRİŞİ 🏋️")
+            if st.button("Çıkış"):
+                st.session_state.role = None
+                st.rerun()
         st.title("GÜCÜ HİSSET! 🏆")
-        st.write("Son girilen öğrenci verileri:")
-        st.dataframe(df.tail(10), use_container_width=True) # Son 10 veri tablosu
-
-    elif secim == "📝 VERİ GİRİŞİ":
-        st.header("YENİ SPORCU VERİSİ")
-        with st.form("veri_formu"):
-            ad = st.text_input("Öğrenci Adı")
+        with st.form("ogrenci_form"):
+            ad = st.text_input("Ad Soyad")
             kilo = st.number_input("Kilo (kg)", step=0.1)
             bel = st.number_input("Bel (cm)", step=0.1)
-            notlar = st.text_area("Coach Notu")
-            if st.form_submit_button("KAYDET"):
-                yeni = pd.DataFrame([[date.today(), ad, kilo, bel, notlar]], columns=df.columns)
+            if st.form_submit_button("VERİLERİ GÖNDER 🔥"):
+                yeni = pd.DataFrame([[date.today(), ad, kilo, bel, ""]], columns=df.columns)
                 df = pd.concat([df, yeni], ignore_index=True)
                 df.to_csv(VERI_DOSYASI, index=False)
-                st.success("Veri başarıyla tabloya eklendi!")
-
-    elif secim == "📊 HAFTALIK ANALİZ":
-        st.header("ÖĞRENCİ GELİŞİM TAKİBİ")
-        isimler = df['Öğrenci Adı'].unique()
-        if len(isimler) > 0:
-            secilen_ogrenci = st.selectbox("Öğrenci Seç", isimler)
-            filtre = df[df['Ö. Adı'] == secilen_ogrenci] # Basit tablo gösterimi
-            st.subheader(f"{secilen_ogrenci} - Değişim Tablosu")
-            st.table(filtre) # Tüm geçmişini tablo olarak döküyoruz
+                st.success("Başarıyla iletildi!")
