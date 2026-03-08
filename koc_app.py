@@ -13,7 +13,7 @@ LOGO_YOLU = "logo.jpg"
 # --- KULLANICI VERİTABANI ---
 KULLANICILAR = {
     "halil": "sahan123",
-    "ahmet": "ahmet2024",
+    "emrecan": "emrecan2026",
     "mehmet": "mehmet55",
     "can": "canelite1"
 }
@@ -153,3 +153,4 @@ else:
             df_k = veriyi_yukle(KILO_DOSYASI, ['Tarih', 'Öğrenci Adı', 'Kilo', 'Not'])
             st.write("Son Günlük Kayıtların:")
             st.table(df_k[df_k['Öğrenci Adı'].str.lower() == current_user].tail(10))
+
