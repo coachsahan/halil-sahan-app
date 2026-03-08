@@ -34,7 +34,8 @@ OLCU_DOSYASI = "haftalik_olculer.csv"
 def veriyi_yukle(dosya, kolonlar):
     if os.path.exists(dosya):
         df = pd.read_csv(dosya)
-        if not df.empty: df['Tarih'] = pd.to_datetime(df['Tarih']).dt.date
+        if not df.empty:
+            df['Tarih'] = pd.to_datetime(df['Tarih']).dt.date
         return df
     return pd.DataFrame(columns=kolonlar)
 
@@ -69,39 +70,34 @@ else:
         if menu == "🏠 Genel Tablo":
             st.title("Toplu Sporcu Özeti")
             st.dataframe(df_k, use_container_width=True)
-            
         elif menu == "📊 Detaylı Analiz":
             st.title("Gelişim Analizi")
             sporcular = df_k['Öğrenci Adı'].unique()
             if len(sporcular) > 0:
                 secilen = st.selectbox("Sporcu seç:", sporcular)
-                st.subheader(f"{secilen} - Kilo Geçmişi")
                 st.table(df_k[df_k['Öğrenci Adı'] == secilen])
             else: st.warning("Veri yok.")
-
         elif menu == "⚖️ Günlük Kilolar":
             st.title("Kilo Kayıtları")
             st.dataframe(df_k, use_container_width=True)
-
         elif menu == "📏 Haftalık Ölçüler":
             st.title("Vücut Ölçümleri")
             st.dataframe(df_o, use_container_width=True)
-
         elif menu == "🗑️ Veri Sil":
             st.title("Veri Silme Paneli")
             dosya_sec = st.selectbox("Hangi dosyadan silinecek?", ["Günlük Kilolar", "Haftalık Ölçüler"])
             temp_df = df_k if dosya_sec == "Günlük Kilolar" else df_o
             if not temp_df.empty:
-                silinecek_index = st.number_input("Silinecek Satır No (Tablodaki en soldaki numara):", min_value=0, max_value=len(temp_df)-1, step=1)
+                st.write(temp_df)
+                silinecek_index = st.number_input("Silinecek Satır No (En soldaki numara):", min_value=0, max_value=len(temp_df)-1, step=1)
                 if st.button("SEÇİLEN SATIRI SİL ❌"):
-                    temp_df = temp_df.drop(temp_df.index[silinecek_index])
+                    new_df = temp_df.drop(temp_df.index[silinecek_index])
                     dosya_adi = KILO_DOSYASI if dosya_sec == "Günlük Kilolar" else OLCU_DOSYASI
-                    temp_df.to_csv(dosya_adi, index=False)
-                    st.success("Veri silindi! Sayfayı yenileyin.")
+                    new_df.to_csv(dosya_adi, index=False)
+                    st.success("Veri silindi! Lütfen sayfayı yenileyin.")
             else: st.info("Silinecek veri yok.")
 
     else:
-        # --- ÖĞRENCİ PANELİ (AYNI KALIYOR) ---
         with st.sidebar:
             st.title(f"SELAM {current_user.upper()}!")
             if st.button("Güvenli Çıkış"):
@@ -111,22 +107,31 @@ else:
         tab1, tab2, tab3 = st.tabs(["⚖️ Günlük Kilo", "📏 Haftalık Ölçü", "📊 Geçmişim"])
         with tab1:
             with st.form("kilo_form"):
-                kilo = st.number_input("Kilo (kg)", step=0.1)
+                kilo_v = st.number_input("Kilo (kg)", step=0.1)
                 notum = st.text_area("Hocana Notun")
                 if st.form_submit_button("KİLOYU KAYDET"):
                     df_k = veriyi_yukle(KILO_DOSYASI, ['Tarih', 'Öğrenci Adı', 'Kilo', 'Not'])
-                    yeni = pd.DataFrame([[date.today(), current_user.capitalize(), kilo, notum]], columns=df_k.columns)
+                    yeni = pd.DataFrame([[date.today(), current_user.capitalize(), kilo_v, notum]], columns=df_k.columns)
                     pd.concat([df_k, yeni]).to_csv(KILO_DOSYASI, index=False)
                     st.success("Kilo iletildi!")
         with tab2:
-            # (Haftalık form içeriği burada)
-            st.info("Haftalık ölçü formu aktif.")
+            with st.form("olcu_form"):
+                c1, c2, c3 = st.columns(3)
+                hkilo = c1.number_input("Güncel Kilo (kg)", step=0.1)
+                hboy = c2.number_input("Boy (cm)", step=1)
+                homuz = c3.number_input("Omuz (cm)", step=0.1)
+                hgogus = c1.number_input("Göğüs (cm)", step=0.1)
+                hbel = c2.number_input("Bel (cm)", step=0.1)
+                hkalca = c3.number_input("Kalça (cm)", step=0.1)
+                hukol = c1.number_input("Üst Kol (cm)", step=0.1)
+                hakol = c2.number_input("Alt Kol (cm)", step=0.1)
+                hbacak = c3.number_input("Bacak (cm)", step=0.1)
+                hbaldir = c1.number_input("Baldır (cm)", step=0.1)
+                if st.form_submit_button("ÖLÇÜLERİ GÖNDER 🔥"):
+                    df_o = veriyi_yukle(OLCU_DOSYASI, ['Tarih', 'Öğrenci Adı', 'Kilo', 'Boy', 'Omuz', 'Kalça', 'Baldır', 'Üst Kol', 'Alt Kol', 'Göğüs', 'Bel', 'Bacak'])
+                    yeni_o = pd.DataFrame([[date.today(), current_user.capitalize(), hkilo, hboy, homuz, hkalca, hbaldir, hukol, hakol, hgogus, hbel, hbacak]], columns=df_o.columns)
+                    pd.concat([df_o, yeni_o]).to_csv(OLCU_DOSYASI, index=False)
+                    st.success("Haftalık ölçüler iletildi!")
         with tab3:
             df_k = veriyi_yukle(KILO_DOSYASI, ['Tarih', 'Öğrenci Adı', 'Kilo', 'Not'])
             st.table(df_k[df_k['Öğrenci Adı'].str.lower() == current_user].tail(10))
-
-
-
-
-
-
