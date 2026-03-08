@@ -26,8 +26,11 @@ def set_bg(main_bg):
         .stApp {{ background: url("data:image/png;base64,{b64}"); background-size: cover; background-attachment: fixed; }}
         .stApp::before {{ content: ""; position: absolute; top: 0; left: 0; width: 100%; height: 100%; background-color: rgba(0, 0, 0, 0.65); z-index: 0; }}
         .main .block-container {{ position: relative; z-index: 10; }}
-        h1, h2, h3, p, label {{ color: white !important; text-shadow: 2px 2px 5px rgba(0,0,0,1) !important; }}
+        h1, h2, h3, p, label {{ color: white !important; text-shadow: 2px 2px 8px rgba(0,0,0,1) !important; }}
         [data-testid="stSidebar"] [data-testid="stImage"] {{ background-color: rgba(128, 128, 128, 0.3); padding: 15px; border-radius: 20px; }}
+        /* Başlık stili */
+        .main-title {{ font-size: 4.5rem !important; font-weight: 800; margin-bottom: 0px; text-align: center; color: white; }}
+        .sub-title {{ font-size: 1.5rem !important; font-style: italic; font-weight: 300; margin-top: -10px; margin-bottom: 30px; text-align: center; color: #f0f0f0; opacity: 0.9; }}
         </style>""", unsafe_allow_html=True)
 
 set_bg(RESIM_YOLU)
@@ -43,14 +46,15 @@ def veriyi_yukle(dosya, kolonlar):
         return df
     return pd.DataFrame(columns=kolonlar)
 
-# --- GİRİŞ SİSTEMİ (ORTALANMIŞ) ---
+# --- GİRİŞ SİSTEMİ (TASARIMLI VE ORTALI) ---
 if 'user' not in st.session_state: st.session_state.user = None
 
 if st.session_state.user is None:
     st.markdown("<br><br><br>", unsafe_allow_html=True)
-    col1, col2, col3 = st.columns([1, 1, 1])
+    col1, col2, col3 = st.columns([0.8, 1.4, 0.8])
     with col2:
-        st.markdown("<h1 style='text-align: center;'>HALİL ŞAHAN ELITE</h1>", unsafe_allow_html=True)
+        st.markdown('<p class="main-title">KOÇ HALİL ŞAHAN</p>', unsafe_allow_html=True)
+        st.markdown('<p class="sub-title">be wild but stay soft</p>', unsafe_allow_html=True)
         user_input = st.text_input("KULLANICI ADI").lower()
         pw_input = st.text_input("ŞİFRE", type="password")
         if st.button("GİRİŞ YAP 🔥", use_container_width=True):
@@ -79,26 +83,25 @@ else:
             st.dataframe(df_k, use_container_width=True)
             
         elif menu == "📊 Detaylı Analiz":
-            st.title("Sporcu Gelişim Analizi")
+            st.title("Gelişim Analizi")
             sporcular = df_k['Öğrenci Adı'].unique()
             if len(sporcular) > 0:
-                secilen = st.selectbox("Analiz edilecek sporcuyu seç:", sporcular)
-                filtre_k = df_k[df_k['Öğrenci Adı'] == secilen].sort_values(by="Tarih", ascending=False)
+                secilen = st.selectbox("Sporcu seç:", sporcular)
                 st.subheader(f"{secilen} - Kilo Geçmişi")
-                st.table(filtre_k)
+                st.table(df_k[df_k['Öğrenci Adı'] == secilen].sort_values(by="Tarih", ascending=False))
                 
                 filtre_o = df_o[df_o['Öğrenci Adı'] == secilen].sort_values(by="Tarih", ascending=False)
                 if not filtre_o.empty:
                     st.subheader(f"{secilen} - Ölçü Geçmişi")
                     st.table(filtre_o)
-            else: st.warning("Henüz analiz edilecek veri yok.")
+            else: st.warning("Veri yok.")
 
         elif menu == "⚖️ Günlük Kilolar":
-            st.title("Tüm Kilo Kayıtları")
+            st.title("Kilo Kayıtları")
             st.dataframe(df_k, use_container_width=True)
 
         elif menu == "📏 Haftalık Ölçüler":
-            st.title("Tüm Vücut Ölçümleri")
+            st.title("Vücut Ölçümleri")
             st.dataframe(df_o, use_container_width=True)
 
     # --- ÖĞRENCİ PANELİ ---
@@ -106,7 +109,7 @@ else:
         with st.sidebar:
             if os.path.exists(LOGO_YOLU): st.image(LOGO_YOLU)
             st.title(f"SELAM {current_user.upper()}!")
-            if st.button("Güvenli Çıkış"):
+            if st.button("Çıkış"):
                 st.session_state.user = None
                 st.rerun()
         
@@ -114,7 +117,6 @@ else:
         tab1, tab2, tab3 = st.tabs(["⚖️ Günlük Kilo", "📏 Haftalık Ölçü", "📊 Geçmişim"])
         
         with tab1:
-            st.subheader("Bugünkü Kilon")
             with st.form("kilo_form"):
                 kilo = st.number_input("Kilo (kg)", step=0.1)
                 notum = st.text_area("Hocana Notun")
@@ -125,7 +127,6 @@ else:
                     st.success("Kilo iletildi!")
         
         with tab2:
-            st.subheader("Haftalık Ölçülerini Gir")
             with st.form("olcu_form"):
                 c1, c2, c3 = st.columns(3)
                 boy = c1.number_input("Boy (cm)", step=1)
@@ -137,15 +138,12 @@ else:
                 alt_kol = c1.number_input("Alt Kol (cm)", step=0.1)
                 bacak = c2.number_input("Bacak (cm)", step=0.1)
                 baldir = c3.number_input("Baldır (cm)", step=0.1)
-                
-                if st.form_submit_button("ÖLÇÜLERİ KOÇA GÖNDER 🔥"):
+                if st.form_submit_button("ÖLÇÜLERİ GÖNDER 🔥"):
                     df_o = veriyi_yukle(OLCU_DOSYASI, ['Tarih', 'Öğrenci Adı', 'Boy', 'Omuz', 'Kalça', 'Baldır', 'Üst Kol', 'Alt Kol', 'Göğüs', 'Bel', 'Bacak'])
                     yeni_o = pd.DataFrame([[date.today(), current_user.capitalize(), boy, omuz, kalca, baldir, ust_kol, alt_kol, gogus, bel, bacak]], columns=df_o.columns)
                     pd.concat([df_o, yeni_o]).to_csv(OLCU_DOSYASI, index=False)
-                    st.success("Ölçüler Coach Halil'e iletildi!")
+                    st.success("Ölçüler iletildi!")
 
         with tab3:
-            st.subheader("Senin Kayıtların")
             df_k = veriyi_yukle(KILO_DOSYASI, ['Tarih', 'Öğrenci Adı', 'Kilo', 'Not'])
             st.table(df_k[df_k['Öğrenci Adı'].str.lower() == current_user].tail(10))
-
