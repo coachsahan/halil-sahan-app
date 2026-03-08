@@ -61,12 +61,12 @@ if st.session_state.user is None:
 else:
     current_user = st.session_state.user
     
-    # --- COACH PANELİ (ADMIN) ---
+    # --- COACH PANELİ (ADMIN - 4 SEKME) ---
     if current_user == "halil":
         with st.sidebar:
             if os.path.exists(LOGO_YOLU): st.image(LOGO_YOLU)
             st.title("COACH PANELİ 👑")
-            menu = st.radio("MENÜ", ["🏠 Genel Tablo", "📊 Detaylı Analiz", "📏 Haftalık Ölçüler"])
+            menu = st.radio("MENÜ", ["🏠 Genel Tablo", "📊 Detaylı Analiz", "⚖️ Günlük Kilolar", "📏 Haftalık Ölçüler"])
             if st.button("Çıkış Yap"):
                 st.session_state.user = None
                 st.rerun()
@@ -75,7 +75,7 @@ else:
         df_o = veriyi_yukle(OLCU_DOSYASI, ['Tarih', 'Öğrenci Adı', 'Boy', 'Omuz', 'Kalça', 'Baldır', 'Üst Kol', 'Alt Kol', 'Göğüs', 'Bel', 'Bacak'])
 
         if menu == "🏠 Genel Tablo":
-            st.title("Tüm Sporcu Kiloları")
+            st.title("Toplu Sporcu Özeti")
             st.dataframe(df_k, use_container_width=True)
             
         elif menu == "📊 Detaylı Analiz":
@@ -83,16 +83,22 @@ else:
             sporcular = df_k['Öğrenci Adı'].unique()
             if len(sporcular) > 0:
                 secilen = st.selectbox("Analiz edilecek sporcuyu seç:", sporcular)
-                filtre = df_k[df_k['Öğrenci Adı'] == secilen].sort_values(by="Tarih")
+                filtre_k = df_k[df_k['Öğrenci Adı'] == secilen].sort_values(by="Tarih", ascending=False)
                 st.subheader(f"{secilen} - Kilo Geçmişi")
-                st.table(filtre)
-                if not df_o.empty:
-                    st.subheader(f"{secilen} - Vücut Ölçüleri")
-                    st.table(df_o[df_o['Öğrenci Adı'] == secilen])
+                st.table(filtre_k)
+                
+                filtre_o = df_o[df_o['Öğrenci Adı'] == secilen].sort_values(by="Tarih", ascending=False)
+                if not filtre_o.empty:
+                    st.subheader(f"{secilen} - Ölçü Geçmişi")
+                    st.table(filtre_o)
             else: st.warning("Henüz analiz edilecek veri yok.")
 
+        elif menu == "⚖️ Günlük Kilolar":
+            st.title("Tüm Kilo Kayıtları")
+            st.dataframe(df_k, use_container_width=True)
+
         elif menu == "📏 Haftalık Ölçüler":
-            st.title("Tüm Haftalık Ölçümler")
+            st.title("Tüm Vücut Ölçümleri")
             st.dataframe(df_o, use_container_width=True)
 
     # --- ÖĞRENCİ PANELİ ---
@@ -119,7 +125,7 @@ else:
                     st.success("Kilo iletildi!")
         
         with tab2:
-            st.subheader("Haftalık Vücut Ölçüleri")
+            st.subheader("Haftalık Ölçülerini Gir")
             with st.form("olcu_form"):
                 c1, c2, c3 = st.columns(3)
                 boy = c1.number_input("Boy (cm)", step=1)
@@ -139,6 +145,6 @@ else:
                     st.success("Ölçüler Coach Halil'e iletildi!")
 
         with tab3:
-            st.subheader("Kendi Kayıtların")
+            st.subheader("Senin Kayıtların")
             df_k = veriyi_yukle(KILO_DOSYASI, ['Tarih', 'Öğrenci Adı', 'Kilo', 'Not'])
             st.table(df_k[df_k['Öğrenci Adı'].str.lower() == current_user].tail(10))
