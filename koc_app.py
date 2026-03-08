@@ -47,9 +47,9 @@ def veriyi_yukle(dosya, kolonlar):
 if 'user' not in st.session_state: st.session_state.user = None
 
 if st.session_state.user is None:
-    st.markdown("<br><br>", unsafe_allow_html=True)
+    st.markdown("<br><br><br>", unsafe_allow_html=True)
     col1, col2, col3 = st.columns([1, 1, 1])
-    with col2: # Ortadaki kolon
+    with col2:
         st.markdown("<h1 style='text-align: center;'>HALİL ŞAHAN ELITE</h1>", unsafe_allow_html=True)
         user_input = st.text_input("KULLANICI ADI").lower()
         pw_input = st.text_input("ŞİFRE", type="password")
@@ -61,26 +61,41 @@ if st.session_state.user is None:
 else:
     current_user = st.session_state.user
     
-    # --- ADMIN ---
+    # --- COACH PANELİ (ADMIN) ---
     if current_user == "halil":
         with st.sidebar:
             if os.path.exists(LOGO_YOLU): st.image(LOGO_YOLU)
             st.title("COACH PANELİ 👑")
-            menu = st.radio("MENÜ", ["🏠 Günlük Kilolar", "📏 Haftalık Ölçüler"])
+            menu = st.radio("MENÜ", ["🏠 Genel Tablo", "📊 Detaylı Analiz", "📏 Haftalık Ölçüler"])
             if st.button("Çıkış Yap"):
                 st.session_state.user = None
                 st.rerun()
         
-        if menu == "🏠 Günlük Kilolar":
+        df_k = veriyi_yukle(KILO_DOSYASI, ['Tarih', 'Öğrenci Adı', 'Kilo', 'Not'])
+        df_o = veriyi_yukle(OLCU_DOSYASI, ['Tarih', 'Öğrenci Adı', 'Boy', 'Omuz', 'Kalça', 'Baldır', 'Üst Kol', 'Alt Kol', 'Göğüs', 'Bel', 'Bacak'])
+
+        if menu == "🏠 Genel Tablo":
             st.title("Tüm Sporcu Kiloları")
-            df_k = veriyi_yukle(KILO_DOSYASI, ['Tarih', 'Öğrenci Adı', 'Kilo', 'Not'])
             st.dataframe(df_k, use_container_width=True)
-        else:
-            st.title("Haftalık Vücut Ölçüleri")
-            df_o = veriyi_yukle(OLCU_DOSYASI, ['Tarih', 'Öğrenci Adı', 'Boy', 'Omuz', 'Kalça', 'Baldır', 'Üst Kol', 'Alt Kol', 'Göğüs', 'Bel', 'Bacak'])
+            
+        elif menu == "📊 Detaylı Analiz":
+            st.title("Sporcu Gelişim Analizi")
+            sporcular = df_k['Öğrenci Adı'].unique()
+            if len(sporcular) > 0:
+                secilen = st.selectbox("Analiz edilecek sporcuyu seç:", sporcular)
+                filtre = df_k[df_k['Öğrenci Adı'] == secilen].sort_values(by="Tarih")
+                st.subheader(f"{secilen} - Kilo Geçmişi")
+                st.table(filtre)
+                if not df_o.empty:
+                    st.subheader(f"{secilen} - Vücut Ölçüleri")
+                    st.table(df_o[df_o['Öğrenci Adı'] == secilen])
+            else: st.warning("Henüz analiz edilecek veri yok.")
+
+        elif menu == "📏 Haftalık Ölçüler":
+            st.title("Tüm Haftalık Ölçümler")
             st.dataframe(df_o, use_container_width=True)
 
-    # --- ÖĞRENCİ ---
+    # --- ÖĞRENCİ PANELİ ---
     else:
         with st.sidebar:
             if os.path.exists(LOGO_YOLU): st.image(LOGO_YOLU)
@@ -93,7 +108,7 @@ else:
         tab1, tab2, tab3 = st.tabs(["⚖️ Günlük Kilo", "📏 Haftalık Ölçü", "📊 Geçmişim"])
         
         with tab1:
-            st.subheader("Bugünkü Kilonu Gir")
+            st.subheader("Bugünkü Kilon")
             with st.form("kilo_form"):
                 kilo = st.number_input("Kilo (kg)", step=0.1)
                 notum = st.text_area("Hocana Notun")
@@ -104,7 +119,7 @@ else:
                     st.success("Kilo iletildi!")
         
         with tab2:
-            st.subheader("Haftalık Vücut Ölçülerini Gir")
+            st.subheader("Haftalık Vücut Ölçüleri")
             with st.form("olcu_form"):
                 c1, c2, c3 = st.columns(3)
                 boy = c1.number_input("Boy (cm)", step=1)
@@ -124,6 +139,6 @@ else:
                     st.success("Ölçüler Coach Halil'e iletildi!")
 
         with tab3:
+            st.subheader("Kendi Kayıtların")
             df_k = veriyi_yukle(KILO_DOSYASI, ['Tarih', 'Öğrenci Adı', 'Kilo', 'Not'])
-            st.write("Son Kilo Kayıtların:")
-            st.table(df_k[df_k['Öğrenci Adı'].str.lower() == current_user].tail(5))
+            st.table(df_k[df_k['Öğrenci Adı'].str.lower() == current_user].tail(10))
