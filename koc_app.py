@@ -9,8 +9,8 @@ import base64
 st.set_page_config(page_title="HALİL ŞAHAN ELITE", layout="wide", page_icon="⚡")
 
 # ❗ YOLLARI GÜNCELLEMEYİ UNUTMA ❗
-RESIM_YOLU = r"C:\Users\myhea\OneDrive\Masaüstü\HalilSahanApp\panel_bg.jpg"
-LOGO_YOLU = r"C:\Users\myhea\OneDrive\Masaüstü\HalilSahanApp\logo.jpg"
+RESIM_YOLU = "panel_bg"
+LOGO_YOLU = "logo"
 # --- ARKA PLAN VE TASARIM ---
 def set_bg(main_bg):
     if os.path.exists(main_bg):
@@ -86,4 +86,5 @@ else:
             secilen_ogrenci = st.selectbox("Öğrenci Seç", isimler)
             filtre = df[df['Ö. Adı'] == secilen_ogrenci] # Basit tablo gösterimi
             st.subheader(f"{secilen_ogrenci} - Değişim Tablosu")
+
             st.table(filtre) # Tüm geçmişini tablo olarak döküyoruz
