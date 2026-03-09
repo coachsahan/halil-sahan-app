@@ -45,11 +45,13 @@ def veriyi_yukle(dosya, kolonlar):
     return pd.DataFrame(columns=kolonlar)
 
 def fark_hesapla(df):
+    """Veriler arasındaki farkı hesaplayan yardımcı fonksiyon"""
     if df.empty: return df
     df = df.sort_values(by="Tarih")
+    # Sayısal kolonları bul ve farklarını hesapla
     numeric_cols = df.select_dtypes(include=['number']).columns
     for col in numeric_cols:
-        df[f'{col} Fark'] = df[col].diff().fillna(0)
+        df[f'{col} (Fark)'] = df[col].diff().fillna(0)
     return df.sort_values(by="Tarih", ascending=False)
 
 if 'user' not in st.session_state: st.session_state.user = None
@@ -85,33 +87,32 @@ else:
             st.title("Toplu Sporcu Özeti")
             st.dataframe(df_k, use_container_width=True)
         elif menu == "📊 Detaylı Analiz":
-            st.title("Gelişim Analizi (Farklar Dahil)")
+            st.title("Gelişim Analizi ve Farklar")
             sporcular = df_k['Öğrenci Adı'].unique()
             if len(sporcular) > 0:
                 secilen = st.selectbox("Sporcu seç:", sporcular)
-                st.subheader("Günlük Kilo Değişimi")
+                st.subheader("Kilo Değişim Grafiği")
                 st.table(fark_hesapla(df_k[df_k['Öğrenci Adı'] == secilen]))
+                
                 filtre_o = df_o[df_o['Öğrenci Adı'] == secilen]
                 if not filtre_o.empty:
-                    st.subheader("Haftalık Ölçü Değişimi")
+                    st.subheader("Haftalık Ölçü Farkları")
                     st.table(fark_hesapla(filtre_o))
             else: st.warning("Veri yok.")
-        elif menu == "⚖️ Günlük Kilolar":
-            st.dataframe(df_k, use_container_width=True)
-        elif menu == "📏 Haftalık Ölçüler":
-            st.dataframe(df_o, use_container_width=True)
         elif menu == "🗑️ Veri Sil":
             st.title("Kayıt Silme Paneli")
-            dosya_sec = st.selectbox("Dosya:", ["Kilolar", "Ölçüler"])
-            temp_df = df_k if dosya_sec == "Kilolar" else df_o
+            dosya_sec = st.selectbox("Hangi veriyi silmek istersin?", ["Günlük Kilolar", "Haftalık Ölçüler"])
+            temp_df = df_k if dosya_sec == "Günlük Kilolar" else df_o
             if not temp_df.empty:
                 st.dataframe(temp_df)
-                idx = st.number_input("Satır No:", min_value=0, max_value=len(temp_df)-1, step=1)
-                if st.button("SİL"):
+                idx = st.number_input("Silinecek Satır Numarası:", min_value=0, max_value=len(temp_df)-1, step=1)
+                if st.button("SEÇİLEN SATIRI SİL ❌"):
                     temp_df = temp_df.drop(temp_df.index[idx])
-                    temp_df.to_csv(KILO_DOSYASI if dosya_sec == "Kilolar" else OLCU_DOSYASI, index=False)
-                    st.success("Silindi!")
+                    temp_df.to_csv(KILO_DOSYASI if dosya_sec == "Günlük Kilolar" else OLCU_DOSYASI, index=False)
+                    st.success("Veri silindi!")
             else: st.info("Veri yok.")
+        else:
+            st.dataframe(df_k if menu == "⚖️ Günlük Kilolar" else df_o)
 
     else:
         with st.sidebar:
@@ -129,34 +130,38 @@ else:
                 kilo_gunluk = st.number_input("Bugünkü Kilon (kg)", step=0.1)
                 notum = st.text_area("Hocana Notun")
                 if st.form_submit_button("KİLOYU KAYDET"):
-                    df = veriyi_yukle(KILO_DOSYASI, ['Tarih', 'Öğrenci Adı', 'Kilo', 'Not'])
-                    yeni = pd.DataFrame([[date.today(), current_user.capitalize(), kilo_gunluk, notum]], columns=df.columns)
-                    pd.concat([df, yeni]).to_csv(KILO_DOSYASI, index=False)
+                    df_k = veriyi_yukle(KILO_DOSYASI, ['Tarih', 'Öğrenci Adı', 'Kilo', 'Not'])
+                    yeni = pd.DataFrame([[date.today(), current_user.capitalize(), kilo_gunluk, notum]], columns=df_k.columns)
+                    pd.concat([df_k, yeni]).to_csv(KILO_DOSYASI, index=False)
                     st.success("Kilo iletildi!")
         
         with tab2:
-            st.subheader("Haftalık Ölçüm Formu")
+            st.subheader("Haftalık Detaylı Ölçüm Formu")
             with st.form("olcu_form", clear_on_submit=True):
                 c1, c2, c3 = st.columns(3)
-                kilo_h = c1.number_input("Kilo (kg)", step=0.1)
+                kilo_h = c1.number_input("Güncel Kilo (kg)", step=0.1)
                 boy_h = c2.number_input("Boy (cm)", step=1)
                 omuz_h = c3.number_input("Omuz (cm)", step=0.1)
                 gogus_h = c1.number_input("Göğüs (cm)", step=0.1)
                 bel_h = c2.number_input("Bel (cm)", step=0.1)
                 kalca_h = c3.number_input("Kalça (cm)", step=0.1)
-                if st.form_submit_button("ÖLÇÜLERİ GÖNDER 🔥"):
-                    df = veriyi_yukle(OLCU_DOSYASI, ['Tarih', 'Öğrenci Adı', 'Kilo', 'Boy', 'Omuz', 'Kalça', 'Baldır', 'Üst Kol', 'Alt Kol', 'Göğüs', 'Bel', 'Bacak'])
-                    yeni = pd.DataFrame([[date.today(), current_user.capitalize(), kilo_h, boy_h, omuz_h, kalca_h, 0, 0, 0, gogus_h, bel_h, 0]], columns=df.columns)
-                    pd.concat([df, yeni]).to_csv(OLCU_DOSYASI, index=False)
-                    st.success("İletildi!")
+                ust_kol_h = c1.number_input("Üst Kol (cm)", step=0.1)
+                alt_kol_h = c2.number_input("Alt Kol (cm)", step=0.1)
+                bacak_h = c3.number_input("Bacak (cm)", step=0.1)
+                baldir_h = c1.number_input("Baldır (cm)", step=0.1)
+                if st.form_submit_button("ÖLÇÜLERİ VE KİLOYU GÖNDER 🔥"):
+                    df_o = veriyi_yukle(OLCU_DOSYASI, ['Tarih', 'Öğrenci Adı', 'Kilo', 'Boy', 'Omuz', 'Kalça', 'Baldır', 'Üst Kol', 'Alt Kol', 'Göğüs', 'Bel', 'Bacak'])
+                    yeni_o = pd.DataFrame([[date.today(), current_user.capitalize(), kilo_h, boy_h, omuz_h, kalca_h, baldir_h, ust_kol_h, alt_kol_h, gogus_h, bel_h, bacak_h]], columns=df_o.columns)
+                    pd.concat([df_o, yeni_o]).to_csv(OLCU_DOSYASI, index=False)
+                    st.success("Haftalık verilerin iletildi!")
 
         with tab3:
             df_k = veriyi_yukle(KILO_DOSYASI, ['Tarih', 'Öğrenci Adı', 'Kilo', 'Not'])
             df_o = veriyi_yukle(OLCU_DOSYASI, ['Tarih', 'Öğrenci Adı', 'Kilo', 'Boy', 'Omuz', 'Kalça', 'Baldır', 'Üst Kol', 'Alt Kol', 'Göğüs', 'Bel', 'Bacak'])
             
-            st.markdown("### ⚖️ Kilo Geçmişin ve Farklar")
+            st.markdown("### ⚖️ Kilo Geçmişin ve Gelişim Farkı")
             st.table(fark_hesapla(df_k[df_k['Öğrenci Adı'].str.lower() == current_user]).head(10))
             
             st.markdown("---")
-            st.markdown("### 📏 Haftalık Ölçü Geçmişin ve Farklar")
+            st.markdown("### 📏 Haftalık Ölçü Geçmişin ve Gelişim Farkı")
             st.table(fark_hesapla(df_o[df_o['Öğrenci Adı'].str.lower() == current_user]).head(10))
