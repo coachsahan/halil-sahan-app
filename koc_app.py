@@ -15,7 +15,7 @@ KULLANICILAR = {
     "halil": "sahan123",
     "emrecan": "emrecan2026",
     "ceyda": "ceyda2026",
-    "umuttatar": "tatar2026"
+    "umut": "tatar2026"
 }
 
 def set_bg(main_bg):
@@ -165,3 +165,4 @@ else:
             st.markdown("---")
             st.markdown("### 📏 Haftalık Ölçü Geçmişin ve Gelişim Farkı")
             st.table(fark_hesapla(df_o[df_o['Öğrenci Adı'].str.lower() == current_user]).head(10))
+
