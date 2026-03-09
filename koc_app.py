@@ -16,7 +16,6 @@ KULLANICILAR = {
     "emrecan": "emrecan2026",
     "ceyda": "ceyda2026",
     "umuttatar": "tatar2026"
-    
 }
 
 def set_bg(main_bg):
@@ -65,12 +64,12 @@ if st.session_state.user is None:
 else:
     current_user = st.session_state.user
     
-    # --- COACH PANELİ (ADMIN - 4 SEKME) ---
+    # --- COACH PANELİ ---
     if current_user == "halil":
         with st.sidebar:
             if os.path.exists(LOGO_YOLU): st.image(LOGO_YOLU)
             st.title("COACH PANELİ 👑")
-            menu = st.radio("MENÜ", ["🏠 Genel Tablo", "📊 Detaylı Analiz", "⚖️ Günlük Kilolar", "📏 Haftalık Ölçüler"])
+            menu = st.radio("MENÜ", ["🏠 Genel Tablo", "📊 Detaylı Analiz", "⚖️ Günlük Kilolar", "📏 Haftalık Ölçüler", "🗑️ Veri Sil"])
             if st.button("Çıkış Yap"):
                 st.session_state.user = None
                 st.rerun()
@@ -89,7 +88,6 @@ else:
                 secilen = st.selectbox("Sporcu seç:", sporcular)
                 st.subheader(f"{secilen} - Günlük Kilo Takibi")
                 st.table(df_k[df_k['Öğrenci Adı'] == secilen].sort_values(by="Tarih", ascending=False))
-                
                 filtre_o = df_o[df_o['Öğrenci Adı'] == secilen].sort_values(by="Tarih", ascending=False)
                 if not filtre_o.empty:
                     st.subheader(f"{secilen} - Haftalık Ölçü ve Kilo Geçmişi")
@@ -103,6 +101,21 @@ else:
         elif menu == "📏 Haftalık Ölçüler":
             st.title("Haftalık Vücut Ölçümleri")
             st.dataframe(df_o, use_container_width=True)
+
+        elif menu == "🗑️ Veri Sil":
+            st.title("Kayıt Silme Paneli")
+            dosya_sec = st.selectbox("Hangi veriyi silmek istersin?", ["Günlük Kilolar", "Haftalık Ölçüler"])
+            temp_df = df_k if dosya_sec == "Günlük Kilolar" else df_o
+            if not temp_df.empty:
+                st.write("Silmek istediğin satırın solundaki numaraya bak:")
+                st.dataframe(temp_df)
+                idx = st.number_input("Silinecek Satır Numarası:", min_value=0, max_value=len(temp_df)-1, step=1)
+                if st.button("SEÇİLEN SATIRI SİL ❌"):
+                    temp_df = temp_df.drop(temp_df.index[idx])
+                    d_adi = KILO_DOSYASI if dosya_sec == "Günlük Kilolar" else OLCU_DOSYASI
+                    temp_df.to_csv(d_adi, index=False)
+                    st.success("Veri başarıyla silindi! Tabloyu güncellemek için sayfayı yenile kanka.")
+            else: st.info("Silinecek veri bulunamadı.")
 
     # --- ÖĞRENCİ PANELİ ---
     else:
@@ -133,17 +146,13 @@ else:
                 kilo_haftalik = c1.number_input("Güncel Kilo (kg)", step=0.1)
                 boy = c2.number_input("Boy (cm)", step=1)
                 omuz = c3.number_input("Omuz (cm)", step=0.1)
-                
                 gogus = c1.number_input("Göğüs (cm)", step=0.1)
                 bel = c2.number_input("Bel (cm)", step=0.1)
                 kalca = c3.number_input("Kalça (cm)", step=0.1)
-                
                 ust_kol = c1.number_input("Üst Kol (cm)", step=0.1)
                 alt_kol = c2.number_input("Alt Kol (cm)", step=0.1)
                 bacak = c3.number_input("Bacak (cm)", step=0.1)
-                
                 baldir = c1.number_input("Baldır (cm)", step=0.1)
-                
                 if st.form_submit_button("ÖLÇÜLERİ VE KİLOYU GÖNDER 🔥"):
                     df_o = veriyi_yukle(OLCU_DOSYASI, ['Tarih', 'Öğrenci Adı', 'Kilo', 'Boy', 'Omuz', 'Kalça', 'Baldır', 'Üst Kol', 'Alt Kol', 'Göğüs', 'Bel', 'Bacak'])
                     yeni_o = pd.DataFrame([[date.today(), current_user.capitalize(), kilo_haftalik, boy, omuz, kalca, baldir, ust_kol, alt_kol, gogus, bel, bacak]], columns=df_o.columns)
@@ -154,7 +163,3 @@ else:
             df_k = veriyi_yukle(KILO_DOSYASI, ['Tarih', 'Öğrenci Adı', 'Kilo', 'Not'])
             st.write("Son Günlük Kayıtların:")
             st.table(df_k[df_k['Öğrenci Adı'].str.lower() == current_user].tail(10))
-
-
-
-
