@@ -130,18 +130,18 @@ else:
         tab1, tab2, tab3 = st.tabs(["⚖️ Günlük Kilo", "📏 Haftalık Ölçü", "📊 Geçmişim"])
         
         with tab1:
-            with st.form("kilo_form"):
+            with st.form("kilo_form", clear_on_submit=True): # <--- BURASI OTOMATİK SİLER
                 kilo_gunluk = st.number_input("Bugünkü Kilon (kg)", step=0.1)
                 notum = st.text_area("Hocana Notun")
                 if st.form_submit_button("KİLOYU KAYDET"):
                     df_k = veriyi_yukle(KILO_DOSYASI, ['Tarih', 'Öğrenci Adı', 'Kilo', 'Not'])
                     yeni = pd.DataFrame([[date.today(), current_user.capitalize(), kilo_gunluk, notum]], columns=df_k.columns)
                     pd.concat([df_k, yeni]).to_csv(KILO_DOSYASI, index=False)
-                    st.success("Kilo iletildi!")
+                    st.success("Kilo iletildi! Kutucuklar temizlendi.")
         
         with tab2:
             st.subheader("Haftalık Detaylı Ölçüm Formu")
-            with st.form("olcu_form"):
+            with st.form("olcu_form", clear_on_submit=True): # <--- BURASI DA OTOMATİK SİLER
                 c1, c2, c3 = st.columns(3)
                 kilo_haftalik = c1.number_input("Güncel Kilo (kg)", step=0.1)
                 boy = c2.number_input("Boy (cm)", step=1)
@@ -157,7 +157,7 @@ else:
                     df_o = veriyi_yukle(OLCU_DOSYASI, ['Tarih', 'Öğrenci Adı', 'Kilo', 'Boy', 'Omuz', 'Kalça', 'Baldır', 'Üst Kol', 'Alt Kol', 'Göğüs', 'Bel', 'Bacak'])
                     yeni_o = pd.DataFrame([[date.today(), current_user.capitalize(), kilo_haftalik, boy, omuz, kalca, baldir, ust_kol, alt_kol, gogus, bel, bacak]], columns=df_o.columns)
                     pd.concat([df_o, yeni_o]).to_csv(OLCU_DOSYASI, index=False)
-                    st.success("Haftalık verilerin Coach Halil'e iletildi!")
+                    st.success("Veriler iletildi! Form sıfırlandı.")
 
         with tab3:
             df_k = veriyi_yukle(KILO_DOSYASI, ['Tarih', 'Öğrenci Adı', 'Kilo', 'Not'])
