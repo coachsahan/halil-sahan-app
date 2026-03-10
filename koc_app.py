@@ -1,3 +1,14 @@
+import sys
+
+# Python 3.13+ sürümlerinde kalkan imghdr hatasını çözmek için yama
+try:
+    import imghdr
+except ImportError:
+    import types
+    m = types.ModuleType("imghdr")
+    m.what = lambda file, h=None: None
+    sys.modules["imghdr"] = m
+
 import streamlit as st
 import pandas as pd
 import os
@@ -71,69 +82,57 @@ if st.session_state.user is None:
         st.markdown('<p class="main-title">KOÇ HALİL ŞAHAN</p>', unsafe_allow_html=True)
         u_in = st.text_input("KULLANICI ADI").lower().strip()
         p_in = st.text_input("ŞİFRE", type="password")
-        if st.button("GİRİŞ YAP 🔥", use_container_width=True):
+        if st.button("SİSTEME GİR 🔥", use_container_width=True):
             if u_in in KULLANICILAR and KULLANICILAR[u_in] == p_in:
                 st.session_state.user = u_in
                 st.rerun()
             else: st.error("Hatalı Giriş!")
 else:
     current_user = st.session_state.user
-    
     if current_user == "halil":
         st.sidebar.title("COACH PANELİ 👑")
-        menu = st.sidebar.radio("MENÜ", ["📊 Detaylı Analiz", "📝 Program Yükle", "🥗 Beslenme Takip", "⚖️ Günlük Kilolar", "📏 Ölçü Kayıtları", "🗑️ Veri Sil"])
-        
+        menu = st.sidebar.radio("MENÜ", ["📊 Analiz", "📝 Program Yükle", "🥗 Beslenme", "⚖️ Kilolar", "📏 Ölçüler", "🗑️ Sil"])
         if st.sidebar.button("Çıkış Yap"):
             st.session_state.user = None
             st.rerun()
 
         if menu == "📝 Program Yükle":
-            st.title("Program Hazırla ✍️")
-            sporcular = [k for k in KULLANICILAR.keys() if k != "halil"]
-            secilen = st.selectbox("Sporcu Seç:", sporcular)
+            st.title("Program Hazırla")
+            sporcu = st.selectbox("Sporcu:", [k for k in KULLANICILAR.keys() if k != "halil"])
             df_p = veriyi_yukle(PROGRAM_DOSYASI, PROGRAM_KOLON)
-            mevcut = df_p[df_p['Sporcu'] == secilen]
-            
-            bes_prog = st.text_area("🥗 Beslenme Programı", height=200)
-            ant_prog = st.text_area("🏋️‍♂️ Antrenman Programı", height=200)
-
-            if st.button("PROGRAMI KAYDET VE GÖNDER"):
-                yeni_p = pd.DataFrame([[secilen, bes_prog, ant_prog, date.today()]], columns=PROGRAM_KOLON)
-                github_a_kaydet(PROGRAM_DOSYASI, pd.concat([df_p, yeni_p]))
-                st.success("Program iletildi!")
-
-        elif menu == "📊 Detaylı Analiz":
-            st.title("Gelişim Analizi")
+            bes = st.text_area("🥗 Beslenme")
+            ant = st.text_area("🏋️‍♂️ Antrenman")
+            if st.button("GÖNDER"):
+                yeni = pd.DataFrame([[sporcu, bes, ant, date.today()]], columns=PROGRAM_KOLON)
+                github_a_kaydet(PROGRAM_DOSYASI, pd.concat([df_p, yeni]))
+                st.success("İletildi!")
+        
+        elif menu == "📊 Analiz":
             df_k = veriyi_yukle(KILO_DOSYASI, KILO_KOLON)
             if not df_k.empty:
-                s = st.selectbox("Sporcu:", df_k['Sporcu'].unique())
-                f = df_k[df_k['Sporcu'] == s].sort_values("Tarih")
-                fig = px.line(f, x="Tarih", y="Kilo", markers=True)
-                fig.update_layout(template="plotly_dark")
-                st.plotly_chart(fig, use_container_width=True)
-            else: st.info("Henüz veri yok.")
+                s = st.selectbox("Sporcu Seç:", df_k['Sporcu'].unique())
+                st.plotly_chart(px.line(df_k[df_k['Sporcu']==s], x="Tarih", y="Kilo", markers=True))
+            else: st.info("Veri yok.")
 
     else:
         st.sidebar.title(f"SELAM {current_user.upper()}")
         tab1, tab2, tab3 = st.tabs(["📜 Programım", "⚖️ Kilo Bildir", "📊 Geçmişim"])
-        
         with tab1:
-            st.subheader("Hocamın Programı")
             df_p = veriyi_yukle(PROGRAM_DOSYASI, PROGRAM_KOLON)
             prog = df_p[df_p['Sporcu'] == current_user].tail(1)
             if not prog.empty:
-                st.write(prog['Antrenman_Prog'].values[0])
-            else: st.info("Programın hazırlanıyor.")
-
+                st.write(f"### Antrenman:\n{prog['Antrenman_Prog'].values[0]}")
+            else: st.info("Hazırlanıyor...")
+        
         with tab2:
-            with st.form("k_form"):
-                kv = st.number_input("Güncel Kilo", step=0.1)
+            with st.form("k"):
+                kv = st.number_input("Kilo", step=0.1)
                 if st.form_submit_button("KAYDET"):
                     df = veriyi_yukle(KILO_DOSYASI, KILO_KOLON)
                     yeni = pd.DataFrame([[date.today(), current_user, kv, ""]], columns=KILO_KOLON)
                     github_a_kaydet(KILO_DOSYASI, pd.concat([df, yeni]))
-                    st.success("Kilo iletildi!")
-        
+                    st.success("İletildi!")
+
         if st.sidebar.button("Çıkış"):
             st.session_state.user = None
             st.rerun()
