@@ -104,11 +104,11 @@ else:
             if len(sporcular) > 0:
                 secilen = st.selectbox("Sporcu Seç:", sporcular)
                 filtre_df = df_k[df_k['Öğrenci Adı'] == secilen].sort_values("Tarih")
-                fig = px.line(filtre_df, x="Tarih", y="Kilo", title=f"{secilen} Kilo Grafiği", markers=True)
+                fig = px.line(filtre_df, x="Tarih", y="Kilo", title=f"{secilen} Kilo Değişim Grafiği", markers=True)
                 fig.update_layout(template="plotly_dark")
                 st.plotly_chart(fig, use_container_width=True)
                 st.table(fark_hesapla(filtre_df))
-            else: st.info("Veri yok.")
+            else: st.info("Henüz analiz edilecek veri yok.")
 
         elif menu == "🥗 Beslenme Takibi":
             st.title("Öğrenci Beslenme Notları")
@@ -116,15 +116,13 @@ else:
 
         elif menu == "🗑️ Veri Sil":
             st.title("Kayıt Silme")
-            dosya_sec = st.selectbox("Hangi veriyi silmek istersin?", ["Kilolar", "Beslenmeler"])
-            target = KILO_DOSYASI if dosya_sec == "Kilolar" else BESLENME_DOSYASI
-            df_del = veriyi_yukle(target, [])
-            if not df_del.empty:
-                idx = st.number_input("Silinecek Satır No:", 0, len(df_del)-1, 0)
+            df_k = veriyi_yukle(KILO_DOSYASI, [])
+            if not df_k.empty:
+                idx = st.number_input("Silinecek Satır No:", 0, len(df_k)-1, 0)
                 if st.button("SİL"):
-                    yeni_df = df_del.drop(df_del.index[idx])
-                    github_a_kaydet(target, yeni_df)
-                    st.success("Kayıt silindi!")
+                    yeni_df = df_k.drop(df_k.index[idx])
+                    github_a_kaydet(KILO_DOSYASI, yeni_df)
+                    st.success("Kayıt silindi ve GitHub güncellendi!")
 
     # --- ÖĞRENCİ PANELİ ---
     else:
@@ -147,18 +145,19 @@ else:
         
         with tab2:
             with st.form("b_form", clear_on_submit=True):
-                ogunler = st.text_area("Öğünlerini buraya yaz kanka")
+                ogunler = st.text_area("Bugün neler yedin kanka? (Makroların veya öğünlerin)")
                 if st.form_submit_button("BESLENMEYİ GÖNDER"):
                     df = veriyi_yukle(BESLENME_DOSYASI, ['Tarih', 'Öğrenci Adı', 'Öğünler'])
                     yeni = pd.DataFrame([[date.today(), current_user.capitalize(), ogunler]], columns=df.columns)
                     github_a_kaydet(BESLENME_DOSYASI, pd.concat([df, yeni]))
-                    st.success("Beslenme iletildi!")
+                    st.success("Beslenme günlüğün Coach Halil'e iletildi!")
 
         with tab3:
-            df_k = veriyi_yukle(KILO_DOSYASI, ['Tarih', 'Ö@grenci Adı', 'Kilo', 'Not'])
-            df_o = veriyi_yukle(OLCU_DOSYASI, ['Tarih', 'Öğrenci Adı', 'Kilo', 'Boy', 'Omuz', 'Kalça', 'Baldır', 'Üst Kol', 'Alt Kol', 'Göğüs', 'Bel', 'Bacak'])
-            st.markdown("### ⚖️ Kilo Değişimin")
-            st.table(fark_hesapla(df_k[df_k['Öğrenci Adı'].str.lower() == current_user]))
-            st.markdown("---")
-            st.markdown("### 📏 Ölçü Değişimin")
-            st.table(fark_hesapla(df_o[df_o['Öğrenci Adı'].str.lower() == current_user]))
+            df_k = veriyi_yukle(KILO_DOSYASI, ['Tarih', 'Öğrenci Adı', 'Kilo', 'Not'])
+            filtre = df_k[df_k['Öğrenci Adı'].str.lower() == current_user].sort_values("Tarih")
+            if not filtre.empty:
+                fig = px.line(filtre, x="Tarih", y="Kilo", title="Kilo Gelişim Grafiğin", markers=True)
+                fig.update_layout(template="plotly_dark")
+                st.plotly_chart(fig, use_container_width=True)
+                st.table(fark_hesapla(filtre))
+            else: st.info("Henüz geçmiş verin bulunmuyor.")
