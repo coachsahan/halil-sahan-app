@@ -43,6 +43,7 @@ def set_bg(main_bg):
 
 set_bg(RESIM_YOLU)
 
+# --- VERİ DOSYALARI ---
 KILO_DOSYASI = "kilo_verileri.csv"
 OLCU_DOSYASI = "haftalik_olculer.csv"
 BESLENME_DOSYASI = "beslenme_verileri.csv"
@@ -58,8 +59,7 @@ def veriyi_yukle(dosya, kolonlar):
 
 def fark_motoru(df):
     if df.empty or len(df) < 1: return df
-    df = df.copy()
-    df = df.sort_values(by="Tarih")
+    df = df.copy().sort_values(by="Tarih")
     numeric_cols = df.select_dtypes(include=['number']).columns
     for col in numeric_cols:
         df[f'{col} (Fark)'] = df[col].diff().fillna(0)
@@ -74,7 +74,7 @@ if st.session_state.user is None:
     col1, col2, col3 = st.columns([0.8, 1.4, 0.8])
     with col2:
         st.markdown('<p class="main-title">KOÇ HALİL ŞAHAN</p>', unsafe_allow_html=True)
-        u_in = st.text_input("KULLANICI ADI").lower()
+        u_in = st.text_input("KULLANICI ADI").lower().strip()
         p_in = st.text_input("ŞİFRE", type="password")
         if st.button("SİSTEME GİR 🔥", use_container_width=True):
             if u_in in KULLANICILAR and KULLANICILAR[u_in] == p_in:
@@ -109,7 +109,6 @@ else:
                 if st.button("SİL ❌"):
                     df_yeni = df_sil.drop(df_sil.index[satir])
                     github_a_kaydet(dosya_adi, df_yeni)
-                    st.success("Silindi!")
                     st.rerun()
 
     else:
@@ -124,27 +123,27 @@ else:
         
         with tab1:
             with st.form("k_form", clear_on_submit=True):
-                kv = st.number_input("Güncel Kilo", step=0.1)
-                nt = st.text_area("Not")
+                kv = st.number_input("Güncel Kilo (kg)", step=0.1)
+                nt = st.text_area("Hocana Notun")
                 if st.form_submit_button("KAYDET"):
                     df = veriyi_yukle(KILO_DOSYASI, ['Tarih', 'Öğrenci Adı', 'Kilo', 'Not'])
                     yeni = pd.DataFrame([[date.today(), current_user, kv, nt]], columns=df.columns)
                     github_a_kaydet(KILO_DOSYASI, pd.concat([df, yeni]))
-                    st.success("Kaydedildi!")
+                    st.success("Kilo iletildi!")
 
         with tab2:
             with st.form("b_form", clear_on_submit=True):
-                og = st.text_area("Beslenme")
+                og = st.text_area("Bugün neler yedin?")
                 if st.form_submit_button("GÖNDER"):
                     df = veriyi_yukle(BESLENME_DOSYASI, ['Tarih', 'Öğrenci Adı', 'Öğünler'])
                     yeni = pd.DataFrame([[date.today(), current_user, og]], columns=df.columns)
                     github_a_kaydet(BESLENME_DOSYASI, pd.concat([df, yeni]))
-                    st.success("İletildi!")
+                    st.success("Beslenme iletildi!")
 
         with tab3:
             with st.form("o_form", clear_on_submit=True):
                 c1, c2, c3 = st.columns(3)
-                ok = c1.number_input("Kilo (kg)", step=0.1)
+                ok = c1.number_input("Güncel Kilo (kg)", step=0.1)
                 ob = c2.number_input("Boy (cm)", step=1)
                 oo = c3.number_input("Omuz (cm)", step=0.1)
                 og = c1.number_input("Göğüs (cm)", step=0.1)
@@ -153,28 +152,31 @@ else:
                 ouk = c1.number_input("Üst Kol (cm)", step=0.1)
                 oak = c2.number_input("Alt Kol (cm)", step=0.1)
                 oba = c3.number_input("Bacak (cm)", step=0.1)
-                hbaldir_v = c1.number_input("Baldır (cm)", step=0.1)
+                bald = c1.number_input("Baldır (cm)", step=0.1)
                 if st.form_submit_button("ÖLÇÜLERİ GÖNDER 🔥"):
                     df = veriyi_yukle(OLCU_DOSYASI, ['Tarih', 'Öğrenci Adı', 'Kilo', 'Boy', 'Omuz', 'Kalça', 'Baldır', 'Üst Kol', 'Alt Kol', 'Göğüs', 'Bel', 'Bacak'])
-                    yeni = pd.DataFrame([[date.today(), current_user, ok, ob, oo, oka, hbaldir_v, ouk, oak, og, obel, oba]], columns=df.columns)
+                    yeni = pd.DataFrame([[date.today(), current_user, ok, ob, oo, oka, bald, ouk, oak, og, obel, oba]], columns=df.columns)
                     github_a_kaydet(OLCU_DOSYASI, pd.concat([df, yeni]))
-                    st.success("Ölçüler Baldır dahil iletildi!")
+                    st.success("Tüm ölçülerin iletildi!")
 
         with tab4:
             st.subheader("Gelişim Arşivin")
             df_k = veriyi_yukle(KILO_DOSYASI, ['Tarih', 'Öğrenci Adı', 'Kilo', 'Not'])
             df_o = veriyi_yukle(OLCU_DOSYASI, ['Tarih', 'Öğrenci Adı', 'Kilo', 'Boy', 'Omuz', 'Kalça', 'Baldır', 'Üst Kol', 'Alt Kol', 'Göğüs', 'Bel', 'Bacak'])
             
-            # KESİN ÇÖZÜM: Filtreleme
+            # Filtreleme
             f_k = df_k[df_k['Öğrenci Adı'].astype(str).str.lower() == current_user.lower()]
             if not f_k.empty:
                 fig = px.line(f_k.sort_values("Tarih"), x="Tarih", y="Kilo", title="Kilo Grafiği", markers=True)
                 fig.update_layout(template="plotly_dark")
                 st.plotly_chart(fig, use_container_width=True)
+                st.markdown("### ⚖️ Kilo Tablosu ve Farklar")
                 st.table(fark_motoru(f_k))
             else: st.info("Kilo verisi bulunamadı.")
             
             f_o = df_o[df_o['Öğrenci Adı'].astype(str).str.lower() == current_user.lower()]
             if not f_o.empty:
                 st.markdown("---")
+                st.markdown("### 📏 Ölçü Tablosu ve Farklar")
                 st.table(fark_motoru(f_o))
+            else: st.info("Ölçü verisi bulunamadı.")
