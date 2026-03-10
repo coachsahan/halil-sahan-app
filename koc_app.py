@@ -3,44 +3,19 @@ import pandas as pd
 import os
 from datetime import date
 import base64
-import requests
 
 # --- SAYFA AYARLARI ---
 st.set_page_config(page_title="KOÇ HALİL ŞAHAN", layout="wide")
 
-# GitHub Bağlantı Ayarları (Secrets'tan çeker)
-GITHUB_TOKEN = st.secrets.get("GITHUB_TOKEN")
-REPO_NAME = st.secrets.get("REPO_NAME")
-
-def github_a_kaydet(dosya_adi, df):
-    """Verileri doğrudan GitHub'daki CSV dosyasına yazar"""
-    if not GITHUB_TOKEN:
-        st.error("Giriş Anahtarı (Token) Secrets kısmına eklenmemiş! Veriler kalıcı kaydedilemez.")
-        return
-    
-    url = f"https://api.github.com/repos/{REPO_NAME}/contents/{dosya_adi}"
-    headers = {"Authorization": f"token {GITHUB_TOKEN}", "Accept": "application/vnd.github.v3+json"}
-    
-    r = requests.get(url, headers=headers)
-    sha = r.json().get('sha') if r.status_code == 200 else None
-    
-    content = base64.b64encode(df.to_csv(index=False).encode()).decode()
-    data = {"message": f"Kalıcı Veri Güncelleme: {date.today()}", "content": content}
-    if sha: data["sha"] = sha
-    
-    res = requests.put(url, headers=headers, json=data)
-    if res.status_code not in [200, 201]:
-        st.error(f"GitHub'a yazılırken hata oluştu: {res.text}")
-
-# --- TASARIM VE ARKA PLAN ---
 RESIM_YOLU = "panel_bg.jpg"
 LOGO_YOLU = "logo.jpg" 
 
+# --- KULLANICI VERİTABANI ---
 KULLANICILAR = {
     "halil": "sahan123",
-    "canan": "canan2026",
-    "hafize": "hafize2026",
-    "umut": "tatar2026"
+    "emrecan": "emrecan2026",
+    "ceyda": "ceyda2026",
+    "umuttatar": "tatar2026"
 }
 
 def set_bg(main_bg):
@@ -61,24 +36,14 @@ set_bg(RESIM_YOLU)
 
 KILO_DOSYASI = "kilo_verileri.csv"
 OLCU_DOSYASI = "haftalik_olculer.csv"
-BESLENME_DOSYASI = "beslenme_takibi.csv"
-PROGRAM_DOSYASI = "antrenman_programlari.csv"
 
 def veriyi_yukle(dosya, kolonlar):
     if os.path.exists(dosya):
         df = pd.read_csv(dosya)
-        if 'Tarih' in df.columns:
+        if not df.empty:
             df['Tarih'] = pd.to_datetime(df['Tarih']).dt.date
         return df
     return pd.DataFrame(columns=kolonlar)
-
-def fark_hesapla(df):
-    if df.empty: return df
-    df = df.sort_values(by="Tarih")
-    numeric_cols = df.select_dtypes(include=['number']).columns
-    for col in numeric_cols:
-        df[f'{col} (Fark)'] = df[col].diff().fillna(0)
-    return df.sort_values(by="Tarih", ascending=False)
 
 if 'user' not in st.session_state: st.session_state.user = None
 
@@ -101,17 +66,83 @@ else:
         with st.sidebar:
             if os.path.exists(LOGO_YOLU): st.image(LOGO_YOLU)
             st.title("COACH PANELİ 👑")
-            menu = st.radio("MENÜ", ["🏠 Genel Tablo", "📊 Analiz & Grafikler", "🥗 Beslenme Kontrol", "🏋️‍♂️ Program Yaz", "🗑️ Veri Sil"])
+            menu = st.radio("MENÜ", ["🏠 Genel Tablo", "📊 Detaylı Analiz", "⚖️ Günlük Kilolar", "📏 Haftalık Ölçüler", "🗑️ Veri Sil"])
             if st.button("Çıkış Yap"):
                 st.session_state.user = None
                 st.rerun()
         
+        df_k = veriyi_yukle(KILO_DOSYASI, ['Tarih', 'Öğrenci Adı', 'Kilo', 'Not'])
+        df_o = veriyi_yukle(OLCU_DOSYASI, ['Tarih', 'Öğrenci Adı', 'Kilo', 'Boy', 'Omuz', 'Kalça', 'Baldır', 'Üst Kol', 'Alt Kol', 'Göğüs', 'Bel', 'Bacak'])
+
         if menu == "🏠 Genel Tablo":
-            df_k = veriyi_yukle(KILO_DOSYASI, ['Tarih', 'Öğrenci Adı', 'Kilo', 'Not'])
             st.title("Toplu Sporcu Özeti")
             st.dataframe(df_k, use_container_width=True)
-
-        elif menu == "📊 Analiz & Grafikler":
+        elif menu == "📊 Detaylı Analiz":
             st.title("Gelişim Analizi")
+            sporcular = df_k['Öğrenci Adı'].unique()
+            if len(sporcular) > 0:
+                secilen = st.selectbox("Sporcu seç:", sporcular)
+                st.subheader(f"{secilen} - Günlük Kilo Takibi")
+                st.table(df_k[df_k['Öğrenci Adı'] == secilen].sort_values(by="Tarih", ascending=False))
+                filtre_o = df_o[df_o['Öğrenci Adı'] == secilen].sort_values(by="Tarih", ascending=False)
+                if not filtre_o.empty:
+                    st.subheader(f"{secilen} - Haftalık Ölçü Geçmişi")
+                    st.table(filtre_o)
+            else: st.warning("Veri yok.")
+        elif menu == "🗑️ Veri Sil":
+            st.title("Veri Silme Paneli")
+            d_sec = st.selectbox("Hangi tablo?", ["Kilolar", "Ölçüler"])
+            temp = df_k if d_sec == "Kilolar" else df_o
+            if not temp.empty:
+                st.write(temp)
+                idx = st.number_input("Silinecek Satır No:", min_value=0, max_value=len(temp)-1, step=1)
+                if st.button("SEÇİLENİ SİL ❌"):
+                    new_df = temp.drop(temp.index[idx])
+                    new_df.to_csv(KILO_DOSYASI if d_sec == "Kilolar" else OLCU_DOSYASI, index=False)
+                    st.success("Silindi! Sayfayı yenileyin.")
+            else: st.info("Silinecek veri yok.")
+        else: st.dataframe(df_k if menu == "⚖️ Günlük Kilolar" else df_o)
+
+    else:
+        with st.sidebar:
+            if os.path.exists(LOGO_YOLU): st.image(LOGO_YOLU)
+            st.title(f"SELAM {current_user.upper()}!")
+            if st.button("Çıkış"):
+                st.session_state.user = None
+                st.rerun()
+        
+        st.markdown(f"<h2 style='text-align: center;'>GÜCÜ HİSSET {current_user.upper()}! 🏆</h2>", unsafe_allow_html=True)
+        tab1, tab2, tab3 = st.tabs(["⚖️ Günlük Kilo", "📏 Haftalık Ölçü", "📊 Geçmişim"])
+        
+        with tab1:
+            with st.form("kilo_form", clear_on_submit=True):
+                kilo_v = st.number_input("Bugünkü Kilon (kg)", step=0.1)
+                notum = st.text_area("Hocana Notun")
+                if st.form_submit_button("KİLOYU KAYDET"):
+                    df = veriyi_yukle(KILO_DOSYASI, ['Tarih', 'Öğrenci Adı', 'Kilo', 'Not'])
+                    yeni = pd.DataFrame([[date.today(), current_user.capitalize(), kilo_v, notum]], columns=df.columns)
+                    pd.concat([df, yeni]).to_csv(KILO_DOSYASI, index=False)
+                    st.success("İletildi!")
+        with tab2:
+            st.subheader("Haftalık Detaylı Ölçüm Formu")
+            with st.form("olcu_form", clear_on_submit=True):
+                c1, c2, c3 = st.columns(3)
+                hkilo = c1.number_input("Güncel Kilo (kg)", step=0.1)
+                hboy = c2.number_input("Boy (cm)", step=1)
+                homuz = c3.number_input("Omuz (cm)", step=0.1)
+                hgogus = c1.number_input("Göğüs (cm)", step=0.1)
+                hbel = c2.number_input("Bel (cm)", step=0.1)
+                hkalca = c3.number_input("Kalça (cm)", step=0.1)
+                if st.form_submit_button("ÖLÇÜLERİ GÖNDER 🔥"):
+                    df = veriyi_yukle(OLCU_DOSYASI, ['Tarih', 'Öğrenci Adı', 'Kilo', 'Boy', 'Omuz', 'Kalça', 'Baldır', 'Üst Kol', 'Alt Kol', 'Göğüs', 'Bel', 'Bacak'])
+                    yeni = pd.DataFrame([[date.today(), current_user.capitalize(), hkilo, hboy, homuz, hkalca, 0, 0, 0, hgogus, hbel, 0]], columns=df.columns)
+                    pd.concat([df, yeni]).to_csv(OLCU_DOSYASI, index=False)
+                    st.success("Haftalık veriler iletildi!")
+        with tab3:
+            df_k = veriyi_yukle(KILO_DOSYASI, ['Tarih', 'Öğrenci Adı', 'Kilo', 'Not'])
             df_o = veriyi_yukle(OLCU_DOSYASI, ['Tarih', 'Öğrenci Adı', 'Kilo', 'Boy', 'Omuz', 'Kalça', 'Baldır', 'Üst Kol', 'Alt Kol', 'Göğüs', 'Bel', 'Bacak'])
-            if not df_o.empty:
+            st.markdown("### ⚖️ Günlük Kilo Geçmişin")
+            st.table(df_k[df_k['Öğrenci Adı'].str.lower() == current_user].tail(10))
+            st.markdown("---")
+            st.markdown("### 📏 Haftalık Ölçü Geçmişin")
+            st.table(df_o[df_o['Öğrenci Adı'].str.lower() == current_user].tail(10))
