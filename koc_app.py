@@ -167,7 +167,7 @@ else:
         with t3:
             with st.form("o"):
                 c1, c2, c3 = st.columns(3)
-                ok = c1.number_input("Kilo", step=0.1)
+                ok = c1.number_input("Güncel Kilo", step=0.1)
                 ob = c2.number_input("Boy", step=1.0)
                 oo = c3.number_input("Omuz", step=0.1)
                 oka = c1.number_input("Kalça", step=0.1)
@@ -199,3 +199,4 @@ else:
                 st.markdown("---")
                 st.table(fark_motoru(fo))
             else: st.info("Henüz ölçü geçmişin bulunamadı.")
+
