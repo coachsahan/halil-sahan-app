@@ -42,7 +42,7 @@ KULLANICILAR = {
     "halil": "sahan123",
     "canan": "canan2026",
     "hafize": "hafize2026",
-    "umut": "tatar2026"
+    "umut": "tatar2025"
 }
 
 def set_bg(main_bg):
@@ -190,3 +190,4 @@ else:
             st.markdown("### ⚖️ Kilo Geçmişin ve Gelişim Farkı")
             st.table(fark_hesapla(df_k[df_k['Öğrenci Adı'].str.lower() == current_user.lower()]).head(10))
             st.markdown("---")
+
