@@ -48,23 +48,24 @@ KILO_DOSYASI = "kilo_verileri.csv"
 OLCU_DOSYASI = "haftalik_olculer.csv"
 BESLENME_DOSYASI = "beslenme_verileri.csv"
 
-# KOLON TANIMLARI
-KILO_KOLON = ['Tarih', 'Öğrenci Adı', 'Kilo', 'Not']
-OLCU_KOLON = ['Tarih', 'Öğrenci Adı', 'Kilo', 'Boy', 'Omuz', 'Kalça', 'Baldır', 'Üst Kol', 'Alt Kol', 'Göğüs', 'Bel', 'Bacak']
-BESLENME_KOLON = ['Tarih', 'Öğrenci Adı', 'Öğünler']
+# KOLONLARI TAŞA YAZDIK (Eşleşme Hatasını Önler)
+KILO_KOLON = ['Tarih', 'Sporcu', 'Kilo', 'Not']
+OLCU_KOLON = ['Tarih', 'Sporcu', 'Kilo', 'Boy', 'Omuz', 'Kalca', 'Baldır', 'UstKol', 'AltKol', 'Gogus', 'Bel', 'Bacak']
+BESLENME_KOLON = ['Tarih', 'Sporcu', 'Ogunler']
 
-def veriyi_yukle(dosya, varsayilan_kolonlar):
+def veriyi_yukle(dosya, kolonlar):
     if not os.path.exists(dosya):
-        return pd.DataFrame(columns=varsayilan_kolonlar)
+        return pd.DataFrame(columns=kolonlar)
     try:
         df = pd.read_csv(dosya)
-        # Dosya boşsa veya bozuksa
-        if df.empty: return pd.DataFrame(columns=varsayilan_kolonlar)
-        # Tarih formatı
-        df['Tarih'] = pd.to_datetime(df['Tarih'], errors='coerce').dt.date
-        return df
+        if df.empty: return pd.DataFrame(columns=kolonlar)
+        # Sütunları garantiye alalım
+        for col in kolonlar:
+            if col not in df.columns: df[col] = 0.0
+        df['Tarih'] = pd.to_datetime(df['Tarih']).dt.date
+        return df[kolonlar]
     except:
-        return pd.DataFrame(columns=varsayilan_kolonlar)
+        return pd.DataFrame(columns=kolonlar)
 
 def fark_motoru(df):
     if df.empty or len(df) < 1: return df
@@ -104,54 +105,29 @@ else:
                 st.rerun()
 
         if menu == "🏠 Genel Tablo" or menu == "⚖️ Günlük Kilolar":
-            st.title("Günlük Kilo Takibi")
-            df = veriyi_yukle(KILO_DOSYASI, KILO_KOLON)
-            st.dataframe(fark_motoru(df), use_container_width=True)
-
-        elif menu == "🥗 Beslenme":
-            st.title("Öğrenci Beslenmeleri")
-            df = veriyi_yukle(BESLENME_DOSYASI, BESLENME_KOLON)
-            st.dataframe(df, use_container_width=True)
-
-        elif menu == "📏 Ölçü Kayıtları":
-            st.title("Haftalık Ölçü Kayıtları")
-            df = veriyi_yukle(OLCU_DOSYASI, OLCU_KOLON)
-            st.dataframe(fark_motoru(df), use_container_width=True)
-
+            st.dataframe(fark_motoru(veriyi_yukle(KILO_DOSYASI, KILO_KOLON)), use_container_width=True)
         elif menu == "📊 Detaylı Analiz":
-            st.title("Sporcu Analizi")
             df_k = veriyi_yukle(KILO_DOSYASI, KILO_KOLON)
-            df_o = veriyi_yukle(OLCU_DOSYASI, OLCU_KOLON)
-            tum_sporcular = pd.concat([df_k['Öğrenci Adı'], df_o['Öğrenci Adı']]).unique()
-            if len(tum_sporcular) > 0:
-                secilen = st.selectbox("Sporcu:", tum_sporcular)
-                f_k = df_k[df_k['Öğrenci Adı'] == secilen].sort_values("Tarih")
-                if not f_k.empty:
-                    fig = px.line(f_k, x="Tarih", y="Kilo", title="Ağırlık Grafiği", markers=True)
-                    st.plotly_chart(fig, use_container_width=True)
-                st.table(fark_motoru(f_k))
-            else: st.info("Veri bulunamadı.")
-
+            tum = df_k['Sporcu'].unique()
+            if len(tum) > 0:
+                s = st.selectbox("Sporcu:", tum)
+                f = df_k[df_k['Sporcu'] == s].sort_values("Tarih")
+                st.plotly_chart(px.line(f, x="Tarih", y="Kilo", markers=True).update_layout(template="plotly_dark"))
+                st.table(fark_motoru(f))
+        elif menu == "📏 Ölçü Kayıtları":
+            st.dataframe(fark_motoru(veriyi_yukle(OLCU_DOSYASI, OLCU_KOLON)), use_container_width=True)
+        elif menu == "🥗 Beslenme":
+            st.dataframe(veriyi_yukle(BESLENME_DOSYASI, BESLENME_KOLON), use_container_width=True)
         elif menu == "🗑️ Veri Sil":
-            st.title("🗑️ Veri Silme Paneli")
-            dosya_sec = st.selectbox("Hangi dosyadan sileceksin?", ["Kilo", "Ölçü", "Beslenme"])
-            
-            # Doğru dosyayı seçtirelim
-            dosya_adi = KILO_DOSYASI if dosya_sec == "Kilo" else (OLCU_DOSYASI if dosya_sec == "Ölçü" else BESLENME_DOSYASI)
-            kolonlar = KILO_KOLON if dosya_sec == "Kilo" else (OLCU_KOLON if dosya_sec == "Ölçü" else BESLENME_KOLON)
-            
-            df_sil = veriyi_yukle(dosya_adi, kolonlar)
-            
-            if not df_sil.empty:
-                st.dataframe(df_sil)
-                idx = st.number_input("Silmek istediğin satırın index no:", 0, len(df_sil)-1, 0)
-                if st.button("SEÇİLEN KAYDI SİL ❌"):
-                    df_yeni = df_sil.drop(df_sil.index[idx])
-                    github_a_kaydet(dosya_adi, df_yeni)
-                    st.success("Veri silindi!")
+            d_sec = st.selectbox("Dosya:", ["Kilo", "Ölçü", "Beslenme"])
+            d_adi = KILO_DOSYASI if d_sec=="Kilo" else (OLCU_DOSYASI if d_sec=="Ölçü" else BESLENME_DOSYASI)
+            df = veriyi_yukle(d_adi, [])
+            if not df.empty:
+                st.dataframe(df)
+                idx = st.number_input("Silinecek Index:", 0, len(df)-1, 0)
+                if st.button("SİL"):
+                    github_a_kaydet(d_adi, df.drop(df.index[idx]))
                     st.rerun()
-            else:
-                st.warning(f"{dosya_sec} dosyasında silinecek veri bulunamadı.")
 
     # --- ÖĞRENCİ PANELİ ---
     else:
@@ -166,50 +142,55 @@ else:
         
         with tab1:
             with st.form("k_form", clear_on_submit=True):
-                kv = st.number_input("Kilon (kg)", step=0.1)
+                kv = st.number_input("Güncel Kilo (kg)", step=0.1)
                 nt = st.text_area("Not")
                 if st.form_submit_button("KAYDET"):
                     df = veriyi_yukle(KILO_DOSYASI, KILO_KOLON)
                     yeni = pd.DataFrame([[date.today(), current_user, kv, nt]], columns=KILO_KOLON)
                     github_a_kaydet(KILO_DOSYASI, pd.concat([df, yeni]))
-                    st.success("Gönderildi!")
+                    st.success("İletildi!")
 
         with tab2:
             with st.form("b_form", clear_on_submit=True):
-                og = st.text_area("Yediklerini yaz")
+                og = st.text_area("Bugün neler yedin?")
                 if st.form_submit_button("GÖNDER"):
                     df = veriyi_yukle(BESLENME_DOSYASI, BESLENME_KOLON)
                     yeni = pd.DataFrame([[date.today(), current_user, og]], columns=BESLENME_KOLON)
                     github_a_kaydet(BESLENME_DOSYASI, pd.concat([df, yeni]))
-                    st.success("Gönderildi!")
+                    st.success("Beslenme iletildi!")
 
         with tab3:
             with st.form("o_form", clear_on_submit=True):
                 c1, c2, c3 = st.columns(3)
-                ok = c1.number_input("Kilo", step=0.1)
-                ob = c2.number_input("Boy", step=1.0)
-                oo = c3.number_input("Omuz", step=0.1)
-                oka = c1.number_input("Kalça", step=0.1)
-                hbal = c2.number_input("Baldır", step=0.1)
-                ouk = c3.number_input("Üst Kol", step=0.1)
-                oak = c1.number_input("Alt Kol", step=0.1)
-                og = c2.number_input("Göğüs", step=0.1)
-                obel = c3.number_input("Bel", step=0.1)
-                oba = c1.number_input("Bacak", step=0.1)
+                ok = c1.number_input("Kilo (kg)", step=0.1)
+                ob = c2.number_input("Boy (cm)", step=1.0)
+                oo = c3.number_input("Omuz (cm)", step=0.1)
+                oka = c1.number_input("Kalça (cm)", step=0.1)
+                hba = c2.number_input("Baldır (cm)", step=0.1)
+                ouk = c3.number_input("Üst Kol (cm)", step=0.1)
+                oak = c1.number_input("Alt Kol (cm)", step=0.1)
+                og = c2.number_input("Göğüs (cm)", step=0.1)
+                obe = c3.number_input("Bel (cm)", step=0.1)
+                oba = c1.number_input("Bacak (cm)", step=0.1)
                 if st.form_submit_button("ÖLÇÜLERİ GÖNDER 🔥"):
                     df = veriyi_yukle(OLCU_DOSYASI, OLCU_KOLON)
-                    yeni = pd.DataFrame([[date.today(), current_user, ok, ob, oo, oka, hbal, ouk, oak, og, obel, oba]], columns=OLCU_KOLON)
+                    yeni = pd.DataFrame([[date.today(), current_user, ok, ob, oo, oka, hba, ouk, oak, og, obe, oba]], columns=OLCU_KOLON)
                     github_a_kaydet(OLCU_DOSYASI, pd.concat([df, yeni]))
-                    st.success("Kaydedildi!")
+                    st.success("Ölçüler kaydedildi!")
 
         with tab4:
             st.subheader("Gelişim Arşivin")
             df_k = veriyi_yukle(KILO_DOSYASI, KILO_KOLON)
             df_o = veriyi_yukle(OLCU_DOSYASI, OLCU_KOLON)
-            f_k = df_k[df_k['Öğrenci Adı'].astype(str).str.lower() == current_user.lower()]
+            
+            # Filtreleme
+            f_k = df_k[df_k['Sporcu'].astype(str).str.lower() == current_user.lower()]
             if not f_k.empty:
+                st.plotly_chart(px.line(f_k.sort_values("Tarih"), x="Tarih", y="Kilo", title="Kilo Grafiği", markers=True).update_layout(template="plotly_dark"))
                 st.table(fark_motoru(f_k))
-            f_o = df_o[df_o['Öğrenci Adı'].astype(str).str.lower() == current_user.lower()]
+            
+            f_o = df_o[df_o['Sporcu'].astype(str).str.lower() == current_user.lower()]
             if not f_o.empty:
                 st.markdown("---")
                 st.table(fark_motoru(f_o))
+            else: st.info("Henüz geçmiş kaydın bulunamadı.")
