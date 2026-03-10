@@ -45,7 +45,6 @@ set_bg(RESIM_YOLU)
 
 # --- VERİ DOSYALARI VE YÜKLEME ---
 KILO_DOSYASI = "kilo_verileri.csv"
-OLCU_DOSYASI = "haftalik_olculer.csv"
 BESLENME_DOSYASI = "beslenme_verileri.csv"
 
 def veriyi_yukle(dosya, kolonlar):
@@ -104,11 +103,12 @@ else:
             if len(sporcular) > 0:
                 secilen = st.selectbox("Sporcu Seç:", sporcular)
                 filtre_df = df_k[df_k['Öğrenci Adı'] == secilen].sort_values("Tarih")
-                fig = px.line(filtre_df, x="Tarih", y="Kilo", title=f"{secilen} Kilo Değişimi", markers=True)
+                # Grafik Patlatalım!
+                fig = px.line(filtre_df, x="Tarih", y="Kilo", title=f"{secilen} Gelişim Grafiği", markers=True)
                 fig.update_layout(template="plotly_dark")
                 st.plotly_chart(fig, use_container_width=True)
                 st.table(fark_hesapla(filtre_df))
-            else: st.info("Analiz için veri yok.")
+            else: st.info("Veri yok.")
 
         elif menu == "🥗 Beslenme Takibi":
             st.title("Öğrenci Beslenme Notları")
@@ -127,10 +127,6 @@ else:
     # --- ÖĞRENCİ PANELİ ---
     else:
         st.sidebar.title(f"SELAM {current_user.upper()}!")
-        if st.sidebar.button("Güvenli Çıkış"):
-            st.session_state.user = None
-            st.rerun()
-            
         tab1, tab2, tab3 = st.tabs(["⚖️ Kilo Kaydet", "🥗 Beslenme", "📊 Geçmişim"])
         
         with tab1:
@@ -145,7 +141,7 @@ else:
         
         with tab2:
             with st.form("b_form", clear_on_submit=True):
-                ogunler = st.text_area("Bugün neler yedin? (Makroların/Öğünlerin)")
+                ogunler = st.text_area("Bugün neler yedin kanka?")
                 if st.form_submit_button("BESLENMEYİ GÖNDER"):
                     df = veriyi_yukle(BESLENME_DOSYASI, ['Tarih', 'Öğrenci Adı', 'Öğünler'])
                     yeni = pd.DataFrame([[date.today(), current_user.capitalize(), ogunler]], columns=df.columns)
@@ -156,8 +152,7 @@ else:
             df_k = veriyi_yukle(KILO_DOSYASI, ['Tarih', 'Öğrenci Adı', 'Kilo', 'Not'])
             filtre = df_k[df_k['Öğrenci Adı'].str.lower() == current_user].sort_values("Tarih")
             if not filtre.empty:
-                fig = px.line(filtre, x="Tarih", y="Kilo", title="Kilo Gelişim Grafiğin", markers=True)
+                fig = px.line(filtre, x="Tarih", y="Kilo", title="Kilo Değişim Grafiğin", markers=True)
                 fig.update_layout(template="plotly_dark")
                 st.plotly_chart(fig, use_container_width=True)
                 st.table(fark_hesapla(filtre))
-            else: st.info("Henüz geçmiş verin bulunmuyor.")
