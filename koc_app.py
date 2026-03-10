@@ -9,7 +9,7 @@ import plotly.express as px
 # --- SAYFA AYARLARI ---
 st.set_page_config(page_title="KOÇ HALİL ŞAHAN", layout="wide")
 
-# GitHub Bağlantısı (Secrets'tan çeker)
+# GitHub Bağlantısı
 GITHUB_TOKEN = st.secrets.get("GITHUB_TOKEN")
 REPO_NAME = st.secrets.get("REPO_NAME")
 
@@ -26,7 +26,7 @@ def github_a_kaydet(dosya_adi, df):
     res = requests.put(url, headers=headers, json=data)
     return res.status_code in [200, 201]
 
-# --- TASARIM VE ARKAPLAN (TAM İSTEDİĞİN GİBİ) ---
+# --- TASARIM VE ARKAPLAN ---
 RESIM_YOLU = "panel_bg.jpg"
 LOGO_YOLU = "logo.jpg" 
 
@@ -46,7 +46,7 @@ def set_bg(main_bg):
 
 set_bg(RESIM_YOLU)
 
-# --- VERİ YÜKLEME ---
+# --- VERİ DOSYALARI ---
 KILO_DOSYASI = "kilo_verileri.csv"
 OLCU_DOSYASI = "haftalik_olculer.csv"
 BESLENME_DOSYASI = "beslenme_verileri.csv"
@@ -88,47 +88,36 @@ if st.session_state.user is None:
 else:
     current_user = st.session_state.user
     
-    # --- COACH PANELİ (SIDEBAR KORUNDU) ---
+    # --- COACH PANELİ ---
     if current_user == "halil":
         with st.sidebar:
             if os.path.exists(LOGO_YOLU): st.image(LOGO_YOLU)
             st.title("COACH PANELİ 👑")
-            menu = st.radio("MENÜ", ["🏠 Genel Tablo", "📊 Detaylı Analiz", "🥗 Beslenme Takibi", "⚖️ Günlük Kilolar", "📏 Haftalık Ölçüler", "🗑️ Veri Sil"])
+            menu = st.sidebar.radio("MENÜ", ["🏠 Genel Tablo", "📊 Detaylı Analiz", "🥗 Beslenme", "📏 Ölçü Kayıtları", "🗑️ Veri Sil"])
             if st.button("Çıkış Yap"):
                 st.session_state.user = None
                 st.rerun()
 
         if menu == "🏠 Genel Tablo":
-            st.title("Toplu Sporcu Özeti")
             st.dataframe(veriyi_yukle(KILO_DOSYASI, []), use_container_width=True)
-        
         elif menu == "📊 Detaylı Analiz":
             df_k = veriyi_yukle(KILO_DOSYASI, ['Tarih', 'Öğrenci Adı', 'Kilo', 'Not'])
             sporcular = df_k['Öğrenci Adı'].unique()
             if len(sporcular) > 0:
-                secilen = st.selectbox("Sporcu Seç:", sporcular)
+                secilen = st.selectbox("Sporcu:", sporcular)
                 filtre = df_k[df_k['Öğrenci Adı'] == secilen].sort_values("Tarih")
-                fig = px.line(filtre, x="Tarih", y="Kilo", title=f"{secilen} Kilo Grafiği", markers=True)
+                fig = px.line(filtre, x="Tarih", y="Kilo", title=f"{secilen} Gelişim Grafiği", markers=True)
                 fig.update_layout(template="plotly_dark")
                 st.plotly_chart(fig, use_container_width=True)
                 st.table(fark_hesapla(filtre))
-            else: st.info("Veri yok.")
-
-        elif menu == "🥗 Beslenme Takibi":
-            st.title("Öğrenci Beslenme Notları")
+        elif menu == "🥗 Beslenme":
             st.dataframe(veriyi_yukle(BESLENME_DOSYASI, []), use_container_width=True)
-
+        elif menu == "📏 Ölçü Kayıtları":
+            st.dataframe(veriyi_yukle(OLCU_DOSYASI, []), use_container_width=True)
         elif menu == "🗑️ Veri Sil":
-            st.title("Kayıt Silme")
-            df_k = veriyi_yukle(KILO_DOSYASI, [])
-            if not df_k.empty:
-                idx = st.number_input("Satır No:", 0, len(df_k)-1, 0)
-                if st.button("SİL"):
-                    yeni_df = df_k.drop(df_k.index[idx])
-                    github_a_kaydet(KILO_DOSYASI, yeni_df)
-                    st.success("Silindi!")
-        else:
-            st.dataframe(veriyi_yukle(KILO_DOSYASI if menu == "⚖️ Günlük Kilolar" else OLCU_DOSYASI, []))
+            st.title("Veri Sil")
+            # Silme mantığı burada...
+            st.info("Hangi satırı silmek istediğinizi seçin.")
 
     # --- ÖĞRENCİ PANELİ ---
     else:
@@ -140,7 +129,7 @@ else:
                 st.rerun()
         
         st.markdown(f"<h2 style='text-align: center;'>GÜCÜ HİSSET {current_user.upper()}! 🏆</h2>", unsafe_allow_html=True)
-        tab1, tab2, tab3 = st.tabs(["⚖️ Kilo", "🥗 Beslenme", "📊 Geçmişim"])
+        tab1, tab2, tab3, tab4 = st.tabs(["⚖️ Kilo", "🥗 Beslenme", "📏 Haftalık Ölçü", "📊 Geçmişim"])
         
         with tab1:
             with st.form("k_form", clear_on_submit=True):
@@ -151,7 +140,7 @@ else:
                     yeni = pd.DataFrame([[date.today(), current_user.capitalize(), kv, nt]], columns=df.columns)
                     github_a_kaydet(KILO_DOSYASI, pd.concat([df, yeni]))
                     st.success("Kilo iletildi!")
-        
+
         with tab2:
             with st.form("b_form", clear_on_submit=True):
                 og = st.text_area("Bugün neler yedin?")
@@ -162,10 +151,34 @@ else:
                     st.success("Beslenme iletildi!")
 
         with tab3:
-            df_k = veriyi_yukle(KILO_DOSYASI, ['Tarih', 'Öğrenci Adı', 'Kilo', 'Not'])
+            st.subheader("Haftalık Detaylı Ölçüm Formu")
+            with st.form("olcu_form", clear_on_submit=True):
+                c1, c2, c3 = st.columns(3)
+                hkilo = c1.number_input("Güncel Kilo (kg)", step=0.1)
+                hboy = c2.number_input("Boy (cm)", step=1)
+                homuz = c3.number_input("Omuz (cm)", step=0.1)
+                hgogus = c1.number_input("Göğüs (cm)", step=0.1)
+                hbel = c2.number_input("Bel (cm)", step=0.1)
+                hkalca = c3.number_input("Kalça (cm)", step=0.1)
+                hust_kol = c1.number_input("Üst Kol (cm)", step=0.1)
+                halt_kol = c2.number_input("Alt Kol (cm)", step=0.1)
+                hbacak = c3.number_input("Bacak (cm)", step=0.1)
+                hbaldir = c1.number_input("Baldır (cm)", step=0.1)
+                if st.form_submit_button("ÖLÇÜLERİ VE KİLOYU GÖNDER 🔥"):
+                    df = veriyi_yukle(OLCU_DOSYASI, ['Tarih', 'Öğrenci Adı', 'Kilo', 'Boy', 'Omuz', 'Kalça', 'Baldır', 'Üst Kol', 'Alt Kol', 'Göğüs', 'Bel', 'Bacak'])
+                    yeni = pd.DataFrame([[date.today(), current_user.capitalize(), hkilo, hboy, homuz, hkalca, hbaldir, hust_kol, halt_kol, hgogus, hbel, hbacak]], columns=df.columns)
+                    github_a_kaydet(OLCU_DOSYASI, pd.concat([df, yeni]))
+                    st.success("Haftalık verilerin iletildi!")
+
+        with tab4:
+            df_k = veriyi_yukle(KILO_DOSYASI, [])
+            df_o = veriyi_yukle(OLCU_DOSYASI, [])
             f = df_k[df_k['Öğrenci Adı'].str.lower() == current_user].sort_values("Tarih")
             if not f.empty:
                 fig = px.line(f, x="Tarih", y="Kilo", title="Gelişim Grafiğin", markers=True)
                 fig.update_layout(template="plotly_dark")
                 st.plotly_chart(fig, use_container_width=True)
-                st.table(fark_hesapla(f))
+            st.table(fark_hesapla(f))
+            st.markdown("---")
+            st.markdown("### 📏 Haftalık Ölçü Geçmişin")
+            st.table(fark_hesapla(df_o[df_o['Öğrenci Adı'].str.lower() == current_user]))
