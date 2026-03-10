@@ -104,11 +104,11 @@ else:
             if len(sporcular) > 0:
                 secilen = st.selectbox("Sporcu Seç:", sporcular)
                 filtre_df = df_k[df_k['Öğrenci Adı'] == secilen].sort_values("Tarih")
-                fig = px.line(filtre_df, x="Tarih", y="Kilo", title=f"{secilen} Kilo Değişim Grafiği", markers=True)
+                fig = px.line(filtre_df, x="Tarih", y="Kilo", title=f"{secilen} Kilo Değişimi", markers=True)
                 fig.update_layout(template="plotly_dark")
                 st.plotly_chart(fig, use_container_width=True)
                 st.table(fark_hesapla(filtre_df))
-            else: st.info("Henüz analiz edilecek veri yok.")
+            else: st.info("Analiz için veri yok.")
 
         elif menu == "🥗 Beslenme Takibi":
             st.title("Öğrenci Beslenme Notları")
@@ -122,7 +122,7 @@ else:
                 if st.button("SİL"):
                     yeni_df = df_k.drop(df_k.index[idx])
                     github_a_kaydet(KILO_DOSYASI, yeni_df)
-                    st.success("Kayıt silindi ve GitHub güncellendi!")
+                    st.success("Kayıt silindi!")
 
     # --- ÖĞRENCİ PANELİ ---
     else:
@@ -145,12 +145,12 @@ else:
         
         with tab2:
             with st.form("b_form", clear_on_submit=True):
-                ogunler = st.text_area("Bugün neler yedin kanka? (Makroların veya öğünlerin)")
+                ogunler = st.text_area("Bugün neler yedin? (Makroların/Öğünlerin)")
                 if st.form_submit_button("BESLENMEYİ GÖNDER"):
                     df = veriyi_yukle(BESLENME_DOSYASI, ['Tarih', 'Öğrenci Adı', 'Öğünler'])
                     yeni = pd.DataFrame([[date.today(), current_user.capitalize(), ogunler]], columns=df.columns)
                     github_a_kaydet(BESLENME_DOSYASI, pd.concat([df, yeni]))
-                    st.success("Beslenme günlüğün Coach Halil'e iletildi!")
+                    st.success("Beslenme iletildi!")
 
         with tab3:
             df_k = veriyi_yukle(KILO_DOSYASI, ['Tarih', 'Öğrenci Adı', 'Kilo', 'Not'])
