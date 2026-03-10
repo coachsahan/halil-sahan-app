@@ -13,8 +13,8 @@ LOGO_YOLU = "logo.jpg"
 # --- KULLANICI VERİTABANI ---
 KULLANICILAR = {
     "halil": "sahan123",
-    "emrecan": "emrecan2026",
-    "ceyda": "ceyda2026",
+    "canan": "canan2026",
+    "hafize": "hafize2026",
     "umut": "tatar2026"
 }
 
@@ -165,4 +165,5 @@ else:
             st.markdown("---")
             st.markdown("### 📏 Haftalık Ölçü Geçmişin ve Gelişim Farkı")
             st.table(fark_hesapla(df_o[df_o['Öğrenci Adı'].str.lower() == current_user]).head(10))
+
 
