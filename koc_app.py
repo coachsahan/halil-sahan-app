@@ -1,3 +1,13 @@
+import sys
+# Python 3.13+ sürümlerinde kalkan imghdr hatasını çözmek için yama
+try:
+    import imghdr
+except ImportError:
+    import types
+    m = types.ModuleType("imghdr")
+    m.what = lambda file, h=None: None
+    sys.modules["imghdr"] = m
+
 import streamlit as st
 import pandas as pd
 import os
@@ -17,13 +27,15 @@ def github_a_kaydet(dosya_adi, df):
     if not GITHUB_TOKEN or not REPO_NAME: return False
     url = f"https://api.github.com/repos/{REPO_NAME}/contents/{dosya_adi}"
     headers = {"Authorization": f"token {GITHUB_TOKEN}", "Accept": "application/vnd.github.v3+json"}
-    r = requests.get(url, headers=headers)
-    sha = r.json().get('sha') if r.status_code == 200 else None
-    content = base64.b64encode(df.to_csv(index=False).encode()).decode()
-    data = {"message": f"Veri Güncelleme: {date.today()}", "content": content}
-    if sha: data["sha"] = sha
-    res = requests.put(url, headers=headers, json=data)
-    return res.status_code in [200, 201]
+    try:
+        r = requests.get(url, headers=headers)
+        sha = r.json().get('sha') if r.status_code == 200 else None
+        content = base64.b64encode(df.to_csv(index=False).encode()).decode()
+        data = {"message": f"Veri Güncelleme: {date.today()}", "content": content}
+        if sha: data["sha"] = sha
+        res = requests.put(url, headers=headers, json=data)
+        return res.status_code in [200, 201]
+    except: return False
 
 # --- TASARIM ---
 RESIM_YOLU = "panel_bg.jpg"
@@ -48,7 +60,6 @@ KILO_DOSYASI = "kilo_verileri.csv"
 OLCU_DOSYASI = "haftalik_olculer.csv"
 BESLENME_DOSYASI = "beslenme_verileri.csv"
 
-# KOLON TANIMLARI
 KILO_KOLON = ['Tarih', 'Öğrenci Adı', 'Kilo', 'Not']
 OLCU_KOLON = ['Tarih', 'Öğrenci Adı', 'Kilo', 'Boy', 'Omuz', 'Kalça', 'Baldır', 'Üst Kol', 'Alt Kol', 'Göğüs', 'Bel', 'Bacak']
 BESLENME_KOLON = ['Tarih', 'Öğrenci Adı', 'Öğünler']
@@ -58,9 +69,7 @@ def veriyi_yukle(dosya, varsayilan_kolonlar):
         return pd.DataFrame(columns=varsayilan_kolonlar)
     try:
         df = pd.read_csv(dosya)
-        # Dosya boşsa veya bozuksa
         if df.empty: return pd.DataFrame(columns=varsayilan_kolonlar)
-        # Tarih formatı
         df['Tarih'] = pd.to_datetime(df['Tarih'], errors='coerce').dt.date
         return df
     except:
@@ -93,7 +102,6 @@ if st.session_state.user is None:
 else:
     current_user = st.session_state.user
     
-    # --- COACH PANELİ ---
     if current_user == "halil":
         with st.sidebar:
             if os.path.exists(LOGO_YOLU): st.image(LOGO_YOLU)
@@ -107,17 +115,14 @@ else:
             st.title("Günlük Kilo Takibi")
             df = veriyi_yukle(KILO_DOSYASI, KILO_KOLON)
             st.dataframe(fark_motoru(df), use_container_width=True)
-
         elif menu == "🥗 Beslenme":
             st.title("Öğrenci Beslenmeleri")
             df = veriyi_yukle(BESLENME_DOSYASI, BESLENME_KOLON)
             st.dataframe(df, use_container_width=True)
-
         elif menu == "📏 Ölçü Kayıtları":
             st.title("Haftalık Ölçü Kayıtları")
             df = veriyi_yukle(OLCU_DOSYASI, OLCU_KOLON)
             st.dataframe(fark_motoru(df), use_container_width=True)
-
         elif menu == "📊 Detaylı Analiz":
             st.title("Sporcu Analizi")
             df_k = veriyi_yukle(KILO_DOSYASI, KILO_KOLON)
@@ -131,29 +136,20 @@ else:
                     st.plotly_chart(fig, use_container_width=True)
                 st.table(fark_motoru(f_k))
             else: st.info("Veri bulunamadı.")
-
         elif menu == "🗑️ Veri Sil":
             st.title("🗑️ Veri Silme Paneli")
             dosya_sec = st.selectbox("Hangi dosyadan sileceksin?", ["Kilo", "Ölçü", "Beslenme"])
-            
-            # Doğru dosyayı seçtirelim
             dosya_adi = KILO_DOSYASI if dosya_sec == "Kilo" else (OLCU_DOSYASI if dosya_sec == "Ölçü" else BESLENME_DOSYASI)
             kolonlar = KILO_KOLON if dosya_sec == "Kilo" else (OLCU_KOLON if dosya_sec == "Ölçü" else BESLENME_KOLON)
-            
             df_sil = veriyi_yukle(dosya_adi, kolonlar)
-            
             if not df_sil.empty:
                 st.dataframe(df_sil)
-                idx = st.number_input("Silmek istediğin satırın index no:", 0, len(df_sil)-1, 0)
-                if st.button("SEÇİLEN KAYDI SİL ❌"):
+                idx = st.number_input("Silinecek index:", 0, len(df_sil)-1, 0)
+                if st.button("SİL"):
                     df_yeni = df_sil.drop(df_sil.index[idx])
                     github_a_kaydet(dosya_adi, df_yeni)
-                    st.success("Veri silindi!")
                     st.rerun()
-            else:
-                st.warning(f"{dosya_sec} dosyasında silinecek veri bulunamadı.")
 
-    # --- ÖĞRENCİ PANELİ ---
     else:
         with st.sidebar:
             if os.path.exists(LOGO_YOLU): st.image(LOGO_YOLU)
