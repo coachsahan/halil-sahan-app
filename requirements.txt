@@ -2,7 +2,8 @@ pandas
 plotly
 requests
 streamlit
-altair
+
+
 
 
 
