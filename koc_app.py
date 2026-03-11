@@ -43,21 +43,20 @@ def set_bg(main_bg):
 
 set_bg(RESIM_YOLU)
 
-# --- VERİ DOSYALARI ---
+# --- VERİ FONKSİYONLARI ---
 KILO_DOSYASI = "kilo_verileri.csv"
 OLCU_DOSYASI = "haftalik_olculer.csv"
 KILO_KOLON = ['Tarih', 'Öğrenci Adı', 'Kilo', 'Not']
 OLCU_KOLON = ['Tarih', 'Öğrenci Adı', 'Kilo', 'Boy', 'Omuz', 'Kalça', 'Baldır', 'Üst Kol', 'Alt Kol', 'Göğüs', 'Bel', 'Bacak']
 
-def veriyi_yukle(dosya, varsayilan_kolonlar):
-    if not os.path.exists(dosya):
-        return pd.DataFrame(columns=varsayilan_kolonlar)
+def veriyi_yukle(dosya, kolonlar):
+    if not os.path.exists(dosya): return pd.DataFrame(columns=kolonlar)
     try:
         df = pd.read_csv(dosya)
-        if df.empty: return pd.DataFrame(columns=varsayilan_kolonlar)
+        if df.empty: return pd.DataFrame(columns=kolonlar)
         df['Tarih'] = pd.to_datetime(df['Tarih'], errors='coerce').dt.date
         return df
-    except: return pd.DataFrame(columns=varsayilan_kolonlar)
+    except: return pd.DataFrame(columns=kolonlar)
 
 def fark_motoru(df):
     if df.empty or len(df) < 1: return df
@@ -67,18 +66,18 @@ def fark_motoru(df):
         df_sorted[f'{col} (Fark)'] = df_sorted[col].diff().fillna(0.0)
     return df_sorted.sort_values(by="Tarih", ascending=False)
 
-# --- KULLANICI SİSTEMİ ---
+# --- GİRİŞ SİSTEMİ ---
 KULLANICILAR = {"halil": "sahan123", "emrecan": "emrecan2026", "ceyda": "ceyda2026", "umuttatar": "tatar2026"}
 if 'user' not in st.session_state: st.session_state.user = None
 
 if st.session_state.user is None:
     st.markdown("<br><br>", unsafe_allow_html=True)
-    col1, col2, col3 = st.columns([0.8, 1.4, 0.8])
-    with col2:
+    c1, c2, c3 = st.columns([0.8, 1.4, 0.8])
+    with c2:
         st.markdown('<p class="main-title">KOÇ HALİL ŞAHAN</p>', unsafe_allow_html=True)
         u_in = st.text_input("KULLANICI ADI").lower().strip()
         p_in = st.text_input("ŞİFRE", type="password")
-        if st.button("SİSTEME GİR 🔥", use_container_width=True):
+        if st.button("GİRİŞ YAP 🔥", use_container_width=True):
             if u_in in KULLANICILAR and KULLANICILAR[u_in] == p_in:
                 st.session_state.user = u_in
                 st.rerun()
@@ -93,16 +92,14 @@ else:
             st.rerun()
 
         if menu == "⚖️ Kilolar":
-            df = veriyi_yukle(KILO_DOSYASI, KILO_KOLON)
-            st.dataframe(fark_motoru(df), use_container_width=True)
+            st.dataframe(fark_motoru(veriyi_yukle(KILO_DOSYASI, KILO_KOLON)), use_container_width=True)
         elif menu == "📊 Analiz":
             df_k = veriyi_yukle(KILO_DOSYASI, KILO_KOLON)
             if not df_k.empty:
-                s = st.selectbox("Sporcu Seç:", df_k['Öğrenci Adı'].unique())
-                fig = px.line(df_k[df_k['Öğrenci Adı']==s], x="Tarih", y="Kilo", markers=True)
-                fig.update_layout(template="plotly_dark")
-                st.plotly_chart(fig, use_container_width=True)
-            else: st.info("Henüz veri yok.")
+                s = st.selectbox("Sporcu:", df_k['Öğrenci Adı'].unique())
+                f = df_k[df_k['Öğrenci Adı']==s].sort_values("Tarih")
+                st.plotly_chart(px.line(f, x="Tarih", y="Kilo", markers=True).update_layout(template="plotly_dark"))
+            else: st.info("Veri yok.")
     else:
         st.sidebar.title(f"SELAM {current_user.upper()}")
         tab1, tab2, tab3 = st.tabs(["⚖️ Kilo Bildir", "📏 Ölçü Bildir", "📊 Geçmişim"])
@@ -118,3 +115,7 @@ else:
             df_k = veriyi_yukle(KILO_DOSYASI, KILO_KOLON)
             f_k = df_k[df_k['Öğrenci Adı'].astype(str).str.lower() == current_user.lower()]
             if not f_k.empty: st.table(fark_motoru(f_k))
+            else: st.info("Henüz veri yok kanka.")
+        if st.sidebar.button("Çıkış"):
+            st.session_state.user = None
+            st.rerun()
