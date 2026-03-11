@@ -75,7 +75,7 @@ def fark_motoru(df):
     return df_sorted.sort_values(by="Tarih", ascending=False)
 
 # --- KULLANICI SİSTEMİ ---
-KULLANICILAR = {"halil": "sahan123", "emrecan": "emrecan2026", "ceyda": "ceyda2026", "umuttatar": "tatar2026"}
+KULLANICILAR = {"halil": "sahan26", "canan": "canan2026", "hafize": "hafize2026", "umut": "tatar2026"}
 if 'user' not in st.session_state: st.session_state.user = None
 
 if st.session_state.user is None:
@@ -213,3 +213,4 @@ else:
             if not f_o.empty:
                 st.markdown("---")
                 st.table(fark_motoru(f_o))
+
