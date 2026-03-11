@@ -54,6 +54,7 @@ OLCU_KOLON = ['Tarih', 'Öğrenci Adı', 'Kilo', 'Boy', 'Omuz', 'Kalça', 'Bald�
 BESLENME_KOLON = ['Tarih', 'Öğrenci Adı', 'Öğünler']
 
 def veriyi_yukle(dosya, varsayilan_kolonlar):
+    @st.cach_data(ttl=0)
     if not os.path.exists(dosya):
         return pd.DataFrame(columns=varsayilan_kolonlar)
     try:
@@ -213,4 +214,5 @@ else:
             if not f_o.empty:
                 st.markdown("---")
                 st.table(fark_motoru(f_o))
+
 
