@@ -53,18 +53,19 @@ KILO_KOLON = ['Tarih', 'Öğrenci Adı', 'Kilo', 'Not']
 OLCU_KOLON = ['Tarih', 'Öğrenci Adı', 'Kilo', 'Boy', 'Omuz', 'Kalça', 'Baldır', 'Üst Kol', 'Alt Kol', 'Göğüs', 'Bel', 'Bacak']
 BESLENME_KOLON = ['Tarih', 'Öğrenci Adı', 'Öğünler']
 
-@st.cache_data(ttl=0)
 def veriyi_yukle(dosya, varsayilan_kolonlar):
     if not os.path.exists(dosya):
         return pd.DataFrame(columns=varsayilan_kolonlar)
     try:
         df = pd.read_csv(dosya)
-        if df.empty: 
-            return pd.DataFrame(columns=varsayilan_kolonlar)
+        # Dosya boşsa veya bozuksa
+        if df.empty: return pd.DataFrame(columns=varsayilan_kolonlar)
+        # Tarih formatı
         df['Tarih'] = pd.to_datetime(df['Tarih'], errors='coerce').dt.date
         return df
     except:
         return pd.DataFrame(columns=varsayilan_kolonlar)
+
 def fark_motoru(df):
     if df.empty or len(df) < 1: return df
     df_sorted = df.copy().sort_values(by="Tarih")
@@ -212,7 +213,3 @@ else:
             if not f_o.empty:
                 st.markdown("---")
                 st.table(fark_motoru(f_o))
-
-
-
-
