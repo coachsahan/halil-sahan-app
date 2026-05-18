@@ -157,7 +157,7 @@ else:
     else:
         with st.sidebar:
             if os.path.exists(LOGO_YOLU): st.image(LOGO_YOLU)
-            st.title(f"NABER {current_user.upper()}")
+            st.title(f"MERHABA SADIÇ {current_user.upper()}")
             if st.button("Çıkış"):
                 st.session_state.user = None
                 st.rerun()
